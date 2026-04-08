@@ -454,13 +454,11 @@ input[type="checkbox"]:focus-visible {
     grid-template-columns: 1.4fr 1fr;
   }
 
-  .panel:nth-child(1) {
+  .container > .panel:nth-child(1) {
     grid-column: 1 / 2;
   }
 
-  .panel:nth-child(2),
-  .panel:nth-child(3),
-  .panel:nth-child(4) {
+  .container > .panel:not(:first-child) {
     grid-column: 2 / 3;
   }
 }

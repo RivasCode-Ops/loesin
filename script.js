@@ -254,7 +254,7 @@ function saveHistory(items) {
 function createPortableSnapshot(label = "Volante compartilhado") {
   const distribution = getDistribution(appliedPicks);
   return {
-    version: "1.7",
+    version: "2.0.0",
     label,
     timestamp: new Date().toISOString(),
     selectedRiskPreset,
