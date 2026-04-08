@@ -1157,9 +1157,21 @@ async function bootstrap() {
     importedRound = null;
     localStorage.removeItem(ROUND_DATA_KEY);
   }
+  let packagedContest = null;
+  try {
+    const packagedResponse = await fetch("./data/concurso-1242.json");
+    if (packagedResponse.ok) {
+      packagedContest = await packagedResponse.json();
+    }
+  } catch (_error) {
+    packagedContest = null;
+  }
+
   const sourcePayload = importedRound
     ? extractRoundPayload(importedRound)
-    : { games: await loadGames(), contestNumber: "", contestDate: "" };
+    : packagedContest
+      ? extractRoundPayload(packagedContest)
+      : { games: await loadGames(), contestNumber: "", contestDate: "" };
   const roundValidation = validateRoundGames(sourcePayload.games);
   const initialGames = roundValidation.ok ? sourcePayload.games : fallbackGames;
   currentContestNumber = sourcePayload.contestNumber || "";
@@ -1191,9 +1203,13 @@ async function bootstrap() {
   saveState();
   setupActions();
   renderErrorLogs();
-  if (importedRound && roundValidation.ok) {
+  if ((importedRound || packagedContest) && roundValidation.ok) {
     setRoundBadge("official");
-    setRoundStatus("Rodada personalizada carregada do armazenamento local.");
+    if (importedRound) {
+      setRoundStatus("Rodada personalizada carregada do armazenamento local.");
+    } else {
+      setRoundStatus("Concurso 1242 carregado automaticamente.");
+    }
   } else {
     setRoundBadge("mock");
   }
