@@ -70,7 +70,7 @@ O repositorio foi configurado com workflow de deploy automatico em `.github/work
 
 URL esperada do app publicado:
 
-- `https://rivascade-ops.github.io/loesin/`
+- `https://rivascode-ops.github.io/loesin/`
 
 Se a pagina ainda nao abrir:
 

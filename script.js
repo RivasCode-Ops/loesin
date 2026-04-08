@@ -1,5 +1,5 @@
 const fallbackGames = [
-  { home: "Flamengo", away: "Vasco", probabilities: { H: 0.65, D: 0.15, A: 0.2 } },
+  { home: "Flamengo", away: "Vasco", probabilities: { H: 0.65, D: 0.1, A: 0.25 } },
   { home: "Corinthians", away: "Santos", probabilities: { H: 0.58, D: 0.23, A: 0.19 } },
   { home: "Sao Paulo", away: "Bragantino", probabilities: { H: 0.56, D: 0.24, A: 0.2 } },
   { home: "Palmeiras", away: "Atletico-GO", probabilities: { H: 0.7, D: 0.16, A: 0.14 } },
@@ -71,23 +71,19 @@ function buildCompositions() {
       all.push(compositionMetrics(d, t));
     }
   }
+  const pickByProfile = (targetDuplos, targetTriplos) =>
+    all.find((c) => c.duplos === targetDuplos && c.triplos === targetTriplos) ||
+    compositionMetrics(targetDuplos, targetTriplos);
 
-  const conservative = all
-    .filter((c) => c.cost <= 16 && c.triplos <= 1)
-    .sort((a, b) => b.score - a.score)[0];
-
-  const balanced = all
-    .filter((c) => c.cost >= 24 && c.cost <= 96 && c.duplos >= 3)
-    .sort((a, b) => b.score - a.score)[0];
-
-  const aggressive = all
-    .filter((c) => c.cost >= 96)
-    .sort((a, b) => b.coverage - a.coverage || a.cost - b.cost)[0];
+  // Perfis padrao de custo/cobertura para manter coerencia da experiencia.
+  const conservative = pickByProfile(3, 0);
+  const balanced = pickByProfile(4, 1);
+  const aggressive = pickByProfile(5, 2);
 
   return [
-    { name: "Conservadora", ...conservative },
-    { name: "Equilibrada", ...balanced, recommended: true },
-    { name: "Agressiva", ...aggressive }
+    { name: "Conservadora", ...conservative, strategy: "baixo custo" },
+    { name: "Equilibrada", ...balanced, strategy: "melhor equilibrio", recommended: true },
+    { name: "Agressiva", ...aggressive, strategy: "maxima cobertura" }
   ];
 }
 
