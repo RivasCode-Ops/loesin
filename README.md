@@ -66,6 +66,11 @@ home,away,H,D,A
 Flamengo,Vasco,0.65,0.10,0.25
 ```
 
+Exemplos prontos no repositorio:
+
+- `data/round-example.json`
+- `data/round-example.csv`
+
 ## Testes automatizados
 
 Rodar suite minima de calculos criticos:
@@ -78,6 +83,15 @@ node --test tests/*.test.mjs
 
 - Changelog em `CHANGELOG.md`.
 - Tag recomendada para a entrega atual: `v2.0.0`.
+- Notas da release prontas em `RELEASE_v2.0.0.md`.
+
+### Publicar Release na UI do GitHub
+
+1. Abra o repositorio no GitHub e acesse `Releases`.
+2. Clique em `Draft a new release`.
+3. Selecione a tag `v2.0.0`.
+4. Copie o conteudo de `RELEASE_v2.0.0.md` para a descricao.
+5. Clique em `Publish release`.
 
 ## Logica tecnica aplicada
 
