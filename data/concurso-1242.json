@@ -1,0 +1,20 @@
+{
+  "contestNumber": "1242",
+  "contestDate": "11/04/2026 (Sabado)",
+  "games": [
+    { "home": "JOGO 01 - TIME CASA", "away": "JOGO 01 - TIME FORA", "probabilities": { "H": 0.45, "D": 0.28, "A": 0.27 } },
+    { "home": "JOGO 02 - TIME CASA", "away": "JOGO 02 - TIME FORA", "probabilities": { "H": 0.52, "D": 0.25, "A": 0.23 } },
+    { "home": "JOGO 03 - TIME CASA", "away": "JOGO 03 - TIME FORA", "probabilities": { "H": 0.40, "D": 0.31, "A": 0.29 } },
+    { "home": "JOGO 04 - TIME CASA", "away": "JOGO 04 - TIME FORA", "probabilities": { "H": 0.57, "D": 0.24, "A": 0.19 } },
+    { "home": "JOGO 05 - TIME CASA", "away": "JOGO 05 - TIME FORA", "probabilities": { "H": 0.49, "D": 0.27, "A": 0.24 } },
+    { "home": "JOGO 06 - TIME CASA", "away": "JOGO 06 - TIME FORA", "probabilities": { "H": 0.43, "D": 0.30, "A": 0.27 } },
+    { "home": "JOGO 07 - TIME CASA", "away": "JOGO 07 - TIME FORA", "probabilities": { "H": 0.55, "D": 0.24, "A": 0.21 } },
+    { "home": "JOGO 08 - TIME CASA", "away": "JOGO 08 - TIME FORA", "probabilities": { "H": 0.47, "D": 0.29, "A": 0.24 } },
+    { "home": "JOGO 09 - TIME CASA", "away": "JOGO 09 - TIME FORA", "probabilities": { "H": 0.38, "D": 0.32, "A": 0.30 } },
+    { "home": "JOGO 10 - TIME CASA", "away": "JOGO 10 - TIME FORA", "probabilities": { "H": 0.51, "D": 0.26, "A": 0.23 } },
+    { "home": "JOGO 11 - TIME CASA", "away": "JOGO 11 - TIME FORA", "probabilities": { "H": 0.46, "D": 0.28, "A": 0.26 } },
+    { "home": "JOGO 12 - TIME CASA", "away": "JOGO 12 - TIME FORA", "probabilities": { "H": 0.59, "D": 0.23, "A": 0.18 } },
+    { "home": "JOGO 13 - TIME CASA", "away": "JOGO 13 - TIME FORA", "probabilities": { "H": 0.42, "D": 0.30, "A": 0.28 } },
+    { "home": "JOGO 14 - TIME CASA", "away": "JOGO 14 - TIME FORA", "probabilities": { "H": 0.50, "D": 0.27, "A": 0.23 } }
+  ]
+}

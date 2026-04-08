@@ -36,6 +36,12 @@ body {
   line-height: 1.4;
 }
 
+.contest-meta {
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+  color: #dbeafe;
+}
+
 .container {
   width: min(1100px, 94%);
   margin: 1rem auto 2rem;
@@ -296,7 +302,22 @@ body {
   gap: 0.5rem;
 }
 
+.contest-box {
+  display: grid;
+  gap: 0.5rem;
+}
+
 #budget-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.92rem;
+}
+
+#contest-number-input,
+#contest-date-input,
+#contest-result-input {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -350,6 +371,16 @@ body {
   margin: 0;
   font-size: 0.88rem;
   color: #334155;
+}
+
+.round-badge {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  font-size: 0.86rem;
 }
 
 .error-log {

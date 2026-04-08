@@ -23,10 +23,13 @@ let appliedPicks = [];
 let selectedRiskPreset = "medio";
 let abSnapshotA = null;
 let abSnapshotB = null;
+let currentContestNumber = "";
+let currentContestDate = "";
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
 const ROUND_DATA_KEY = "loesin_round_data_v1";
 const LOG_KEY = "loesin_error_log_v1";
+const CONTEST_MEMORY_KEY = "loesin_contest_memory_v1";
 const MONTE_CARLO_RUNS = 10000;
 const RISK_PRESETS = {
   baixo: { duplos: 3, triplos: 0, label: "Baixo risco" },
@@ -78,6 +81,45 @@ function setRoundStatus(message, isError = false) {
   el.style.color = isError ? "#b91c1c" : "#334155";
 }
 
+function setRoundBadge(mode) {
+  const badge = document.getElementById("round-badge");
+  if (!badge) return;
+  if (mode === "official") {
+    badge.textContent = "Status da rodada: IMPORTADA (concurso atual)";
+    badge.style.background = "#ecfeff";
+    badge.style.color = "#155e75";
+    badge.style.borderColor = "#a5f3fc";
+  } else {
+    badge.textContent = "Status da rodada: MOCK (exemplo)";
+    badge.style.background = "#fff7ed";
+    badge.style.color = "#9a3412";
+    badge.style.borderColor = "#fed7aa";
+  }
+}
+
+function refreshContestMetaDisplay() {
+  const meta = document.getElementById("contest-meta");
+  const numInput = document.getElementById("contest-number-input");
+  const dateInput = document.getElementById("contest-date-input");
+  if (numInput) numInput.value = currentContestNumber;
+  if (dateInput) dateInput.value = currentContestDate;
+  if (meta) {
+    meta.textContent = `Concurso: ${currentContestNumber || "-"} | Data: ${currentContestDate || "-"}`;
+  }
+}
+
+function extractRoundPayload(input) {
+  if (Array.isArray(input)) return { games: input, contestNumber: "", contestDate: "" };
+  if (input && typeof input === "object" && Array.isArray(input.games)) {
+    return {
+      games: input.games,
+      contestNumber: String(input.contestNumber || ""),
+      contestDate: String(input.contestDate || "")
+    };
+  }
+  return { games: null, contestNumber: "", contestDate: "" };
+}
+
 function validateRoundGames(rawGames) {
   if (!Array.isArray(rawGames) || rawGames.length !== 14) {
     return { ok: false, reason: "A rodada precisa conter exatamente 14 jogos." };
@@ -127,6 +169,7 @@ function reinitializeRound(rawGames) {
   renderCompositions();
   updateResult(appliedPicks);
   syncRiskPresetControl();
+  refreshContestMetaDisplay();
   saveState();
 }
 
@@ -251,6 +294,21 @@ function saveHistory(items) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 5)));
 }
 
+function loadContestMemory() {
+  try {
+    const raw = localStorage.getItem(CONTEST_MEMORY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveContestMemory(memory) {
+  localStorage.setItem(CONTEST_MEMORY_KEY, JSON.stringify(memory));
+}
+
 function createPortableSnapshot(label = "Volante compartilhado") {
   const distribution = getDistribution(appliedPicks);
   return {
@@ -262,6 +320,21 @@ function createPortableSnapshot(label = "Volante compartilhado") {
     distribution: `${distribution.duplos}D/${distribution.triplos}T`,
     picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
   };
+}
+
+function saveCurrentContestSnapshot(contestNumber) {
+  const memory = loadContestMemory();
+  memory[String(contestNumber)] = {
+    ...createPortableSnapshot(`Concurso ${contestNumber}`),
+    contestNumber: String(contestNumber),
+    contestDate: currentContestDate || ""
+  };
+  saveContestMemory(memory);
+}
+
+function getContestSnapshot(contestNumber) {
+  const memory = loadContestMemory();
+  return memory[String(contestNumber)] || null;
 }
 
 function validateSnapshot(input) {
@@ -287,6 +360,13 @@ function setImportStatus(message, isError = false) {
 
 function setAbStatus(message, isError = false) {
   const el = document.getElementById("ab-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
+function setContestStatus(message, isError = false) {
+  const el = document.getElementById("contest-status");
   if (!el) return;
   el.textContent = message;
   el.style.color = isError ? "#b91c1c" : "#334155";
@@ -322,6 +402,26 @@ function ticketFromSnapshot(snapshot) {
     if (match && picks.length > 0) match.picks = picks;
   });
   return ticket;
+}
+
+function parseOfficialResult(input) {
+  if (!input || typeof input !== "string") return null;
+  const normalized = input
+    .toUpperCase()
+    .replace(/1/g, "H")
+    .replace(/X/g, "D")
+    .replace(/2/g, "A")
+    .replace(/[^HDA]/g, "");
+  if (normalized.length !== 14) return null;
+  return normalized.split("");
+}
+
+function countHitsForTicket(ticket, resultSymbols) {
+  let hits = 0;
+  for (let i = 0; i < 14; i += 1) {
+    if (ticket[i] && ticket[i].picks.includes(resultSymbols[i])) hits += 1;
+  }
+  return hits;
 }
 
 function renderABCompare() {
@@ -378,23 +478,32 @@ function sampleOutcome(probabilities) {
 
 function runMonteCarlo(ticket, runs = MONTE_CARLO_RUNS) {
   let hits14 = 0;
+  let hits13plus = 0;
+  let hits12plus = 0;
   for (let i = 0; i < runs; i += 1) {
-    let ok = true;
+    let hits = 0;
     for (const game of ticket) {
       const outcome = sampleOutcome(game.probabilities);
-      if (!game.picks.includes(outcome)) {
-        ok = false;
-        break;
-      }
+      if (game.picks.includes(outcome)) hits += 1;
     }
-    if (ok) hits14 += 1;
+    if (hits >= 12) hits12plus += 1;
+    if (hits >= 13) hits13plus += 1;
+    if (hits === 14) hits14 += 1;
   }
 
   const p = hits14 / runs;
   const stderr = Math.sqrt((p * (1 - p)) / runs);
   const low = Math.max(0, p - 1.96 * stderr);
   const high = Math.min(1, p + 1.96 * stderr);
-  return { p, low, high, hits14, runs };
+  return {
+    p,
+    low,
+    high,
+    hits14,
+    runs,
+    p12plus: hits12plus / runs,
+    p13plus: hits13plus / runs
+  };
 }
 
 function setBudgetStatus(message, isError = false) {
@@ -580,6 +689,8 @@ function updateResult(ticket) {
   document.getElementById("mc-hit-rate").textContent = formatPercent(mc.p * 100);
   document.getElementById("mc-interval").textContent =
     `IC 95%: ${formatPercent(mc.low * 100)} - ${formatPercent(mc.high * 100)} (${mc.hits14}/${mc.runs})`;
+  document.getElementById("mc-bands").textContent =
+    `Faixas: 12+ ${formatPercent(mc.p12plus * 100)} | 13+ ${formatPercent(mc.p13plus * 100)} | 14 ${formatPercent(mc.p * 100)}`;
 
   renderStrategyCompare(ticket);
   renderTicketHistory();
@@ -795,6 +906,12 @@ function setupActions() {
   const optimizeBudgetBtn = document.getElementById("optimize-budget-btn");
   const roundDataInput = document.getElementById("round-data-input");
   const resetRoundBtn = document.getElementById("reset-round-btn");
+  const contestNumberInput = document.getElementById("contest-number-input");
+  const contestDateInput = document.getElementById("contest-date-input");
+  const contestResultInput = document.getElementById("contest-result-input");
+  const saveContestBtn = document.getElementById("save-contest-btn");
+  const loadContestBtn = document.getElementById("load-contest-btn");
+  const checkResultBtn = document.getElementById("check-result-btn");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -934,15 +1051,21 @@ function setupActions() {
     if (!file) return;
     try {
       const text = await file.text();
-      const rawGames = file.name.toLowerCase().endsWith(".csv") ? parseRoundCsv(text) : JSON.parse(text);
-      const validation = validateRoundGames(rawGames);
+      const payload = file.name.toLowerCase().endsWith(".csv") ? { games: parseRoundCsv(text) } : extractRoundPayload(JSON.parse(text));
+      const validation = validateRoundGames(payload.games);
       if (!validation.ok) {
         setRoundStatus(validation.reason, true);
         appendLog(validation.reason, "warn");
         return;
       }
-      localStorage.setItem(ROUND_DATA_KEY, JSON.stringify(rawGames));
-      reinitializeRound(rawGames);
+      currentContestNumber = payload.contestNumber || "";
+      currentContestDate = payload.contestDate || "";
+      localStorage.setItem(
+        ROUND_DATA_KEY,
+        JSON.stringify({ contestNumber: currentContestNumber, contestDate: currentContestDate, games: payload.games })
+      );
+      reinitializeRound(payload.games);
+      setRoundBadge("official");
       setRoundStatus("Rodada importada com sucesso.");
       appendLog(`Rodada importada (${file.name}).`);
     } catch (error) {
@@ -955,9 +1078,73 @@ function setupActions() {
 
   resetRoundBtn.addEventListener("click", () => {
     localStorage.removeItem(ROUND_DATA_KEY);
+    currentContestNumber = "";
+    currentContestDate = "";
     reinitializeRound(fallbackGames);
+    setRoundBadge("mock");
     setRoundStatus("Dados mock restaurados.");
     appendLog("Rodada resetada para mock.");
+  });
+
+  contestDateInput.addEventListener("input", () => {
+    currentContestDate = contestDateInput.value.trim();
+    refreshContestMetaDisplay();
+  });
+
+  saveContestBtn.addEventListener("click", () => {
+    const contest = Number(contestNumberInput.value);
+    if (!Number.isInteger(contest) || contest <= 0) {
+      setContestStatus("Informe um numero de concurso valido.", true);
+      return;
+    }
+    currentContestNumber = String(contest);
+    currentContestDate = contestDateInput.value.trim();
+    refreshContestMetaDisplay();
+    saveCurrentContestSnapshot(contest);
+    setContestStatus(`Volante salvo na memoria para o concurso ${contest}.`);
+  });
+
+  loadContestBtn.addEventListener("click", () => {
+    const contest = Number(contestNumberInput.value);
+    if (!Number.isInteger(contest) || contest <= 0) {
+      setContestStatus("Informe um numero de concurso valido.", true);
+      return;
+    }
+    const snapshot = getContestSnapshot(contest);
+    if (!snapshot) {
+      setContestStatus(`Nao existe volante salvo para o concurso ${contest}.`, true);
+      return;
+    }
+    currentContestNumber = String(contest);
+    currentContestDate = String(snapshot.contestDate || "");
+    refreshContestMetaDisplay();
+    const ok = applyPortableSnapshot(snapshot);
+    if (ok) setContestStatus(`Volante do concurso ${contest} carregado com sucesso.`);
+  });
+
+  checkResultBtn.addEventListener("click", () => {
+    const contest = Number(contestNumberInput.value);
+    const parsedResult = parseOfficialResult(contestResultInput.value);
+    if (!parsedResult) {
+      setContestStatus("Resultado invalido. Informe 14 simbolos (H/D/A ou 1/X/2).", true);
+      return;
+    }
+
+    const currentHits = countHitsForTicket(appliedPicks, parsedResult);
+    const snapshot = Number.isInteger(contest) && contest > 0 ? getContestSnapshot(contest) : null;
+    if (!snapshot) {
+      setContestStatus(`Conferencia atual: ${currentHits}/14 acertos no volante em tela.`);
+      return;
+    }
+    const savedTicket = ticketFromSnapshot(snapshot);
+    if (!savedTicket) {
+      setContestStatus("Volante salvo esta invalido e nao pode ser comparado.", true);
+      return;
+    }
+    const savedHits = countHitsForTicket(savedTicket, parsedResult);
+    const diff = currentHits - savedHits;
+    const deltaText = diff === 0 ? "empatou com o salvo" : diff > 0 ? `${diff} acerto(s) a mais` : `${Math.abs(diff)} acerto(s) a menos`;
+    setContestStatus(`Concurso ${contest}: atual ${currentHits}/14, salvo ${savedHits}/14 (${deltaText}).`);
   });
 }
 
@@ -970,9 +1157,13 @@ async function bootstrap() {
     importedRound = null;
     localStorage.removeItem(ROUND_DATA_KEY);
   }
-  const sourceGames = importedRound || (await loadGames());
-  const roundValidation = validateRoundGames(sourceGames);
-  const initialGames = roundValidation.ok ? sourceGames : fallbackGames;
+  const sourcePayload = importedRound
+    ? extractRoundPayload(importedRound)
+    : { games: await loadGames(), contestNumber: "", contestDate: "" };
+  const roundValidation = validateRoundGames(sourcePayload.games);
+  const initialGames = roundValidation.ok ? sourcePayload.games : fallbackGames;
+  currentContestNumber = sourcePayload.contestNumber || "";
+  currentContestDate = sourcePayload.contestDate || "";
   games = buildAnalysis(initialGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
@@ -996,11 +1187,15 @@ async function bootstrap() {
   renderCompositions();
   updateResult(appliedPicks);
   syncRiskPresetControl();
+  refreshContestMetaDisplay();
   saveState();
   setupActions();
   renderErrorLogs();
   if (importedRound && roundValidation.ok) {
+    setRoundBadge("official");
     setRoundStatus("Rodada personalizada carregada do armazenamento local.");
+  } else {
+    setRoundBadge("mock");
   }
 }
 
