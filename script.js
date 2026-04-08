@@ -161,6 +161,40 @@ function saveHistory(items) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 5)));
 }
 
+function createPortableSnapshot(label = "Volante compartilhado") {
+  const distribution = getDistribution(appliedPicks);
+  return {
+    version: "1.7",
+    label,
+    timestamp: new Date().toISOString(),
+    selectedRiskPreset,
+    selectedComposition: selectedComposition ? selectedComposition.name : null,
+    distribution: `${distribution.duplos}D/${distribution.triplos}T`,
+    picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
+  };
+}
+
+function validateSnapshot(input) {
+  if (!input || typeof input !== "object") return { ok: false, reason: "JSON invalido." };
+  if (!Array.isArray(input.picks) || input.picks.length !== games.length) {
+    return { ok: false, reason: "Estrutura de picks invalida para 14 jogos." };
+  }
+  const allValid = input.picks.every((item) => {
+    if (!item || typeof item.id !== "number" || !Array.isArray(item.picks)) return false;
+    const normalized = normalizeManualPicks(item.picks);
+    return normalized.length > 0;
+  });
+  if (!allValid) return { ok: false, reason: "Picks contem valores invalidos." };
+  return { ok: true };
+}
+
+function setImportStatus(message, isError = false) {
+  const el = document.getElementById("import-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
 function chanceOfHit(ticket) {
   const p = ticket.reduce((acc, game) => {
     const coveredProb = game.picks.reduce((sum, symbol) => sum + game.probabilities[symbol], 0);
@@ -503,6 +537,22 @@ function captureHistory(label = "Volante salvo") {
   renderTicketHistory();
 }
 
+function captureHistoryFromSnapshot(snapshot, label = "Volante importado") {
+  const history = loadHistory();
+  const distribution = snapshot.distribution || "0D/0T";
+  const snapshotItem = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    label,
+    timestamp: new Date().toLocaleString("pt-BR"),
+    distribution,
+    selectedRiskPreset: snapshot.selectedRiskPreset || "custom",
+    selectedComposition: snapshot.selectedComposition || null,
+    picks: snapshot.picks
+  };
+  saveHistory([snapshotItem, ...history]);
+  renderTicketHistory();
+}
+
 function applyHistoryItem(id) {
   const history = loadHistory();
   const item = history.find((entry) => entry.id === id);
@@ -527,10 +577,42 @@ function applyHistoryItem(id) {
   saveState();
 }
 
+function applyPortableSnapshot(snapshot) {
+  const validation = validateSnapshot(snapshot);
+  if (!validation.ok) {
+    setImportStatus(validation.reason, true);
+    return false;
+  }
+
+  const savedComp = compositions.find((c) => c.name === snapshot.selectedComposition);
+  if (savedComp) selectedComposition = savedComp;
+  selectedRiskPreset = typeof snapshot.selectedRiskPreset === "string" ? snapshot.selectedRiskPreset : "custom";
+  appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
+
+  snapshot.picks.forEach((saved) => {
+    const match = appliedPicks.find((g) => g.id === saved.id);
+    const picks = normalizeManualPicks(saved.picks);
+    if (match && picks.length > 0) match.picks = picks;
+  });
+
+  renderGames(appliedPicks);
+  renderSuggestions(pickSecas(games));
+  renderCompositions();
+  updateResult(appliedPicks);
+  syncRiskPresetControl();
+  saveState();
+  captureHistoryFromSnapshot(snapshot, "Volante importado em JSON");
+  setImportStatus("Volante JSON importado com sucesso.");
+  return true;
+}
+
 function setupActions() {
   const confirm = document.getElementById("confirm-build");
   const generateBtn = document.getElementById("generate-btn");
   const exportPngBtn = document.getElementById("export-png-btn");
+  const exportJsonBtn = document.getElementById("export-json-btn");
+  const copyJsonBtn = document.getElementById("copy-json-btn");
+  const importJsonInput = document.getElementById("import-json-input");
   const output = document.getElementById("ticket-output");
   const applyBalancedBtn = document.getElementById("apply-balanced-btn");
   const riskPreset = document.getElementById("risk-preset");
@@ -539,6 +621,8 @@ function setupActions() {
     const canGenerate = confirm.checked;
     generateBtn.disabled = !canGenerate;
     exportPngBtn.disabled = !canGenerate;
+    exportJsonBtn.disabled = !canGenerate;
+    copyJsonBtn.disabled = !canGenerate;
     saveState();
   });
 
@@ -561,6 +645,48 @@ function setupActions() {
     output.value = text;
     exportTicketPng(appliedPicks);
     captureHistory("Volante exportado em PNG");
+  });
+
+  exportJsonBtn.addEventListener("click", () => {
+    const snapshot = createPortableSnapshot("Volante exportado em JSON");
+    const text = JSON.stringify(snapshot, null, 2);
+    output.value = text;
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "volante-loesin.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    captureHistory("Volante exportado em JSON");
+    setImportStatus("JSON exportado com sucesso.");
+  });
+
+  copyJsonBtn.addEventListener("click", async () => {
+    try {
+      const snapshot = createPortableSnapshot("Volante copiado em JSON");
+      const text = JSON.stringify(snapshot, null, 2);
+      await navigator.clipboard.writeText(text);
+      output.value = text;
+      setImportStatus("JSON copiado para a area de transferencia.");
+    } catch (_error) {
+      setImportStatus("Nao foi possivel copiar JSON neste navegador.", true);
+    }
+  });
+
+  importJsonInput.addEventListener("change", async () => {
+    const file = importJsonInput.files && importJsonInput.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      output.value = text;
+      applyPortableSnapshot(parsed);
+    } catch (_error) {
+      setImportStatus("Falha ao ler JSON. Verifique o arquivo.", true);
+    } finally {
+      importJsonInput.value = "";
+    }
   });
 
   applyBalancedBtn.addEventListener("click", () => {

@@ -86,7 +86,12 @@
         <div class="cta-actions">
           <button id="generate-btn" disabled>Gerar Volante (.txt)</button>
           <button id="export-png-btn" class="secondary-btn" disabled>Exportar Volante (.png)</button>
+          <button id="export-json-btn" class="secondary-btn" disabled>Exportar Volante (.json)</button>
+          <button id="copy-json-btn" class="secondary-btn" disabled>Copiar JSON</button>
+          <label for="import-json-input" class="import-label">Importar volante (.json)</label>
+          <input id="import-json-input" type="file" accept=".json,application/json" />
         </div>
+        <p id="import-status" class="import-status"></p>
         <textarea
           id="ticket-output"
           rows="12"

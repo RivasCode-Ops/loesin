@@ -22,6 +22,7 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Simulador Monte Carlo (10.000 rodadas) com IC 95% para calibrar chance de 14 acertos.
 - Presets de risco (baixo/medio/alto) para ajustar composicao automaticamente.
 - Historico local dos ultimos 5 volantes exportados com reaplicacao em 1 clique.
+- Exportar/importar volante em JSON com validacao e reaplicacao automatica.
 
 ## Estrutura
 
