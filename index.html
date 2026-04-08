@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loteria Esportiva Inteligente</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Loteria Esportiva Inteligente</h1>
+      <p>
+        Analise os jogos com sugestoes de apostas secas, distribuicao ideal de
+        duplos e triplos, percentual de cobertura e estimativa de chance de
+        acerto.
+      </p>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <h2>Jogos da Rodada</h2>
+        <div id="games-grid" class="games-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Sugestoes</h2>
+        <div class="suggestions">
+          <p id="secas-list" class="secas"></p>
+          <div class="compositions" id="compositions-list"></div>
+        </div>
+      </section>
+
+      <section class="panel panel-highlight">
+        <h2>Resultado da Combinacao</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span class="label">Cobertura estimada</span>
+            <strong id="coverage-value">0%</strong>
+            <small id="coverage-combos">0 combinacoes</small>
+          </div>
+          <div class="metric">
+            <span class="label">Chance de 14 acertos</span>
+            <strong id="chance-value">1 em -</strong>
+            <small id="chance-percent">0%</small>
+          </div>
+          <div class="metric">
+            <span class="label">Custo da aposta</span>
+            <strong id="cost-value">R$ 0,00</strong>
+            <small>Base de R$ 1,00 por combinacao</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel cta-panel">
+        <label class="cta-check">
+          <input type="checkbox" id="confirm-build" />
+          <span>Montar minha aposta ideal</span>
+        </label>
+        <button id="generate-btn" disabled>Gerar Volante</button>
+        <textarea
+          id="ticket-output"
+          rows="12"
+          readonly
+          placeholder="O volante gerado aparecera aqui."
+        ></textarea>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
