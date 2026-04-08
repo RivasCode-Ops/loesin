@@ -21,6 +21,8 @@ let compositions = [];
 let selectedComposition = null;
 let appliedPicks = [];
 let selectedRiskPreset = "medio";
+let abSnapshotA = null;
+let abSnapshotB = null;
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
 const MONTE_CARLO_RUNS = 10000;
@@ -195,6 +197,13 @@ function setImportStatus(message, isError = false) {
   el.style.color = isError ? "#b91c1c" : "#334155";
 }
 
+function setAbStatus(message, isError = false) {
+  const el = document.getElementById("ab-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
 function chanceOfHit(ticket) {
   const p = ticket.reduce((acc, game) => {
     const coveredProb = game.picks.reduce((sum, symbol) => sum + game.probabilities[symbol], 0);
@@ -212,6 +221,56 @@ function computeTicketStats(ticket) {
     : 1;
   const coverage = ((distribution.duplos + distribution.triplos * 2) / 14) * 100;
   return { p14, inv, distribution, combos, coverage };
+}
+
+function ticketFromSnapshot(snapshot) {
+  const validation = validateSnapshot(snapshot);
+  if (!validation.ok) return null;
+  const comp = compositions.find((c) => c.name === snapshot.selectedComposition) || selectedComposition;
+  const ticket = applyComposition(games, pickSecas(games), comp);
+  snapshot.picks.forEach((saved) => {
+    const match = ticket.find((g) => g.id === saved.id);
+    const picks = normalizeManualPicks(saved.picks);
+    if (match && picks.length > 0) match.picks = picks;
+  });
+  return ticket;
+}
+
+function renderABCompare() {
+  const root = document.getElementById("ab-compare");
+  if (!root) return;
+  root.innerHTML = "";
+  if (!abSnapshotA || !abSnapshotB) return;
+
+  const ticketA = ticketFromSnapshot(abSnapshotA);
+  const ticketB = ticketFromSnapshot(abSnapshotB);
+  if (!ticketA || !ticketB) {
+    setAbStatus("Um dos JSONs A/B e invalido.", true);
+    return;
+  }
+
+  const a = computeTicketStats(ticketA);
+  const b = computeTicketStats(ticketB);
+  const scoreA = a.p14 / Math.max(1, a.combos);
+  const scoreB = b.p14 / Math.max(1, b.combos);
+  const best = scoreA >= scoreB ? "A" : "B";
+
+  const createCard = (name, stats, isBest) => {
+    const card = document.createElement("article");
+    card.className = `ab-card ${isBest ? "ab-best" : ""}`.trim();
+    card.innerHTML = `
+      <h3>Volante ${name}${isBest ? " (melhor custo/chance)" : ""}</h3>
+      <p>Composicao: ${stats.distribution.duplos}D/${stats.distribution.triplos}T</p>
+      <p>Cobertura: ${formatPercent(stats.coverage)} | Combinacoes: ${stats.combos}</p>
+      <p>Custo: ${formatCurrency(stats.combos)}</p>
+      <p>Chance: ${stats.inv ? `1 em ${stats.inv.toLocaleString("pt-BR")}` : "1 em -"} (${formatPercent(stats.p14 * 100)})</p>
+    `;
+    return card;
+  };
+
+  root.appendChild(createCard("A", a, best === "A"));
+  root.appendChild(createCard("B", b, best === "B"));
+  setAbStatus(`Comparacao pronta. Melhor relacao custo/chance: Volante ${best}.`);
 }
 
 function formatPercent(value) {
@@ -616,6 +675,8 @@ function setupActions() {
   const output = document.getElementById("ticket-output");
   const applyBalancedBtn = document.getElementById("apply-balanced-btn");
   const riskPreset = document.getElementById("risk-preset");
+  const abJsonAInput = document.getElementById("ab-json-a");
+  const abJsonBInput = document.getElementById("ab-json-b");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -704,6 +765,34 @@ function setupActions() {
       return;
     }
     applyRiskPreset(selected);
+  });
+
+  abJsonAInput.addEventListener("change", async () => {
+    const file = abJsonAInput.files && abJsonAInput.files[0];
+    if (!file) return;
+    try {
+      abSnapshotA = JSON.parse(await file.text());
+      setAbStatus("JSON A carregado.");
+      renderABCompare();
+    } catch (_error) {
+      setAbStatus("Falha ao carregar JSON A.", true);
+    } finally {
+      abJsonAInput.value = "";
+    }
+  });
+
+  abJsonBInput.addEventListener("change", async () => {
+    const file = abJsonBInput.files && abJsonBInput.files[0];
+    if (!file) return;
+    try {
+      abSnapshotB = JSON.parse(await file.text());
+      setAbStatus("JSON B carregado.");
+      renderABCompare();
+    } catch (_error) {
+      setAbStatus("Falha ao carregar JSON B.", true);
+    } finally {
+      abJsonBInput.value = "";
+    }
   });
 }
 

@@ -257,6 +257,40 @@ body {
   gap: 0.5rem;
 }
 
+.ab-actions {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.ab-compare {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ab-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: #fff;
+}
+
+.ab-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.ab-card p {
+  margin: 0.15rem 0;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.ab-best {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
 .history-item {
   border: 1px solid var(--border);
   border-radius: 10px;

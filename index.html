@@ -78,6 +78,18 @@
         <div id="ticket-history" class="ticket-history"></div>
       </section>
 
+      <section class="panel">
+        <h2>Comparacao A/B de JSON</h2>
+        <div class="ab-actions">
+          <label for="ab-json-a" class="import-label">Importar JSON A</label>
+          <input id="ab-json-a" type="file" accept=".json,application/json" />
+          <label for="ab-json-b" class="import-label">Importar JSON B</label>
+          <input id="ab-json-b" type="file" accept=".json,application/json" />
+        </div>
+        <p id="ab-status" class="import-status"></p>
+        <div id="ab-compare" class="ab-compare"></div>
+      </section>
+
       <section class="panel cta-panel">
         <label class="cta-check">
           <input type="checkbox" id="confirm-build" />
