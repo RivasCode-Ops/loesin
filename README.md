@@ -101,6 +101,12 @@ node --test tests/*.test.mjs
 - [x] Tag de versao publicada (`v2.0.0`).
 - [ ] Release publicada na UI do GitHub (acao manual final).
 
+### Verificacao rapida pre-release (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1
+```
+
 ## Logica tecnica aplicada
 
 - Dados mock com 14 jogos reais em `data/games.json`.
