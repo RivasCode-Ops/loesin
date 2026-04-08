@@ -184,6 +184,31 @@ body {
   font-weight: bold;
 }
 
+.mc-box {
+  margin-top: 0.75rem;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.mc-box .label {
+  display: block;
+  color: #475569;
+  font-size: 0.84rem;
+}
+
+.mc-box strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 1.18rem;
+  color: #1e1b4b;
+}
+
+.mc-box small {
+  color: #475569;
+}
+
 .strategy-compare {
   display: grid;
   gap: 0.55rem;

@@ -21,6 +21,7 @@ let compositions = [];
 let selectedComposition = null;
 let appliedPicks = [];
 const STORAGE_KEY = "loesin_ticket_v11";
+const MONTE_CARLO_RUNS = 10000;
 
 async function loadGames() {
   try {
@@ -164,6 +165,34 @@ function formatCurrency(value) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function sampleOutcome(probabilities) {
+  const r = Math.random();
+  if (r < probabilities.H) return "H";
+  if (r < probabilities.H + probabilities.D) return "D";
+  return "A";
+}
+
+function runMonteCarlo(ticket, runs = MONTE_CARLO_RUNS) {
+  let hits14 = 0;
+  for (let i = 0; i < runs; i += 1) {
+    let ok = true;
+    for (const game of ticket) {
+      const outcome = sampleOutcome(game.probabilities);
+      if (!game.picks.includes(outcome)) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) hits14 += 1;
+  }
+
+  const p = hits14 / runs;
+  const stderr = Math.sqrt((p * (1 - p)) / runs);
+  const low = Math.max(0, p - 1.96 * stderr);
+  const high = Math.min(1, p + 1.96 * stderr);
+  return { p, low, high, hits14, runs };
+}
+
 function renderGames(ticket) {
   const root = document.getElementById("games-grid");
   root.innerHTML = "";
@@ -257,6 +286,7 @@ function renderStrategyCompare(currentTicket) {
 
 function updateResult(ticket) {
   const { p14, inv, distribution, combos, coverage } = computeTicketStats(ticket);
+  const mc = runMonteCarlo(ticket);
 
   document.getElementById("coverage-value").textContent = formatPercent(coverage);
   document.getElementById("coverage-combos").textContent = `${combos} combinacoes cobertas`;
@@ -275,6 +305,10 @@ function updateResult(ticket) {
     warning.hidden = true;
     warning.textContent = "";
   }
+
+  document.getElementById("mc-hit-rate").textContent = formatPercent(mc.p * 100);
+  document.getElementById("mc-interval").textContent =
+    `IC 95%: ${formatPercent(mc.low * 100)} - ${formatPercent(mc.high * 100)} (${mc.hits14}/${mc.runs})`;
 
   renderStrategyCompare(ticket);
 }
