@@ -85,7 +85,10 @@ function setRoundBadge(mode) {
   const badge = document.getElementById("round-badge");
   if (!badge) return;
   if (mode === "official") {
-    badge.textContent = "Status da rodada: IMPORTADA (concurso atual)";
+    const hasMeta = currentContestNumber || currentContestDate;
+    badge.textContent = hasMeta
+      ? `Status da rodada: Concurso ${currentContestNumber || "-"} - ${currentContestDate || "-"}`
+      : "Status da rodada: IMPORTADA (concurso atual)";
     badge.style.background = "#ecfeff";
     badge.style.color = "#155e75";
     badge.style.borderColor = "#a5f3fc";
@@ -104,8 +107,33 @@ function refreshContestMetaDisplay() {
   if (numInput) numInput.value = currentContestNumber;
   if (dateInput) dateInput.value = currentContestDate;
   if (meta) {
-    meta.textContent = `Concurso: ${currentContestNumber || "-"} | Data: ${currentContestDate || "-"}`;
+    const contestNum = currentContestNumber || "-";
+    const dateLabel = currentContestDate || "-";
+    const previousNumber = /^\d+$/.test(String(currentContestNumber))
+      ? String(Math.max(1, Number(currentContestNumber) - 1))
+      : "";
+    const previousText = previousNumber ? ` | Anterior: ${previousNumber}` : "";
+    meta.textContent = `Concurso: ${contestNum} | Data: ${dateLabel}${previousText}`;
   }
+}
+
+async function loadPackagedContest() {
+  const candidates = [
+    "./data/concurso-1242.json",
+    "data/concurso-1242.json",
+    "/loesin/data/concurso-1242.json"
+  ];
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (_error) {
+      // tenta proximo caminho
+    }
+  }
+  return null;
 }
 
 function extractRoundPayload(input) {
@@ -1157,15 +1185,7 @@ async function bootstrap() {
     importedRound = null;
     localStorage.removeItem(ROUND_DATA_KEY);
   }
-  let packagedContest = null;
-  try {
-    const packagedResponse = await fetch("./data/concurso-1242.json");
-    if (packagedResponse.ok) {
-      packagedContest = await packagedResponse.json();
-    }
-  } catch (_error) {
-    packagedContest = null;
-  }
+  const packagedContest = await loadPackagedContest();
 
   const sourcePayload = importedRound
     ? extractRoundPayload(importedRound)
@@ -1208,10 +1228,11 @@ async function bootstrap() {
     if (importedRound) {
       setRoundStatus("Rodada personalizada carregada do armazenamento local.");
     } else {
-      setRoundStatus("Concurso 1242 carregado automaticamente.");
+      setRoundStatus(`Concurso ${currentContestNumber || "1242"} carregado automaticamente.`);
     }
   } else {
     setRoundBadge("mock");
+    setRoundStatus("Rodada mock carregada.");
   }
 }
 

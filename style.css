@@ -49,6 +49,11 @@ body {
   gap: 0.9rem;
 }
 
+.side-stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
 .panel {
   background: var(--card);
   border: 1px solid var(--border);
@@ -483,13 +488,10 @@ input[type="checkbox"]:focus-visible {
 @media (min-width: 860px) {
   .container {
     grid-template-columns: 1.4fr 1fr;
+    align-items: start;
   }
 
-  .container > .panel:nth-child(1) {
-    grid-column: 1 / 2;
-  }
-
-  .container > .panel:not(:first-child) {
+  .side-stack {
     grid-column: 2 / 3;
   }
 }
