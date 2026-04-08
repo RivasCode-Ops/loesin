@@ -53,6 +53,8 @@ loesin/
 
 ## Print da interface
 
+![Preview da interface LOESIN](assets/screenshot-interface.svg)
+
 Ao abrir o app, a interface apresenta:
 
 - Header com descricao da ferramenta.
@@ -61,6 +63,20 @@ Ao abrir o app, a interface apresenta:
 - Composicoes sugeridas com destaque para recomendada.
 - Resultado da combinacao com cobertura, chance e custo.
 - CTA para gerar e exportar volante.
+
+## Deploy (GitHub Pages)
+
+O repositorio foi configurado com workflow de deploy automatico em `.github/workflows/deploy-pages.yml`.
+
+URL esperada do app publicado:
+
+- `https://rivascade-ops.github.io/loesin/`
+
+Se a pagina ainda nao abrir:
+
+1. Acesse `Settings > Pages` no repositorio.
+2. Em `Build and deployment`, selecione `GitHub Actions`.
+3. Aguarde o workflow `Deploy static site to Pages` concluir.
 
 ## Copy da entrega solicitada
 

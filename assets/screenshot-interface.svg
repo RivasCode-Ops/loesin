@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f3f6f9"/>
+  <rect x="0" y="0" width="1280" height="96" fill="#155e75"/>
+  <text x="40" y="50" font-family="Arial, sans-serif" font-size="34" fill="#ffffff" font-weight="700">Loteria Esportiva Inteligente</text>
+  <text x="40" y="78" font-family="Arial, sans-serif" font-size="16" fill="#dbeafe">Analise de secas, duplos, triplos, cobertura e chance</text>
+
+  <rect x="30" y="120" width="760" height="560" rx="12" fill="#ffffff" stroke="#d8e1ea"/>
+  <text x="52" y="155" font-family="Arial, sans-serif" font-size="24" fill="#1f2937" font-weight="700">Jogos da Rodada</text>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#1f2937">
+    <rect x="50" y="175" width="720" height="56" rx="8" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="64" y="199">Jogo 1: Flamengo x Vasco</text>
+    <text x="64" y="219" fill="#6b7280">Casa: 65% | Empate: 15% | Fora: 20%</text>
+    <rect x="50" y="241" width="720" height="56" rx="8" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="64" y="265">Jogo 2: Corinthians x Santos</text>
+    <text x="64" y="285" fill="#6b7280">Casa: 58% | Empate: 23% | Fora: 19%</text>
+    <rect x="50" y="307" width="720" height="56" rx="8" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="64" y="331">Jogo 3: Sao Paulo x Bragantino</text>
+    <text x="64" y="351" fill="#6b7280">Casa: 56% | Empate: 24% | Fora: 20%</text>
+  </g>
+
+  <rect x="820" y="120" width="430" height="560" rx="12" fill="#ffffff" stroke="#d8e1ea"/>
+  <text x="842" y="155" font-family="Arial, sans-serif" font-size="24" fill="#1f2937" font-weight="700">Sugestoes</text>
+  <text x="842" y="186" font-family="Arial, sans-serif" font-size="14" fill="#334155">Secas: Flamengo, Palmeiras, Corinthians...</text>
+
+  <rect x="842" y="206" width="386" height="48" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="856" y="235" font-family="Arial, sans-serif" font-size="14" fill="#111827">Conservadora: 3 duplos, 0 triplos (R$ 8)</text>
+  <rect x="842" y="264" width="386" height="52" rx="8" fill="#ecfeff" stroke="#0e7490"/>
+  <text x="856" y="295" font-family="Arial, sans-serif" font-size="14" fill="#0f172a">Equilibrada: 4 duplos, 1 triplo (R$ 48) </text>
+  <rect x="842" y="326" width="386" height="48" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="856" y="355" font-family="Arial, sans-serif" font-size="14" fill="#111827">Agressiva: 5 duplos, 2 triplos (R$ 432)</text>
+
+  <text x="842" y="404" font-family="Arial, sans-serif" font-size="24" fill="#1f2937" font-weight="700">Resultado</text>
+  <rect x="842" y="418" width="386" height="78" rx="8" fill="#f8fafc" stroke="#d1d5db"/>
+  <text x="856" y="444" font-family="Arial, sans-serif" font-size="13" fill="#64748b">Cobertura estimada</text>
+  <text x="856" y="475" font-family="Arial, sans-serif" font-size="30" fill="#0f172a" font-weight="700">42,9%</text>
+
+  <rect x="842" y="506" width="386" height="78" rx="8" fill="#f8fafc" stroke="#d1d5db"/>
+  <text x="856" y="532" font-family="Arial, sans-serif" font-size="13" fill="#64748b">Chance de 14 acertos</text>
+  <text x="856" y="563" font-family="Arial, sans-serif" font-size="30" fill="#0f172a" font-weight="700">1 em 30.168</text>
+
+  <rect x="842" y="600" width="250" height="44" rx="10" fill="#2563eb"/>
+  <text x="883" y="628" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" font-weight="700">Gerar Volante</text>
+</svg>
