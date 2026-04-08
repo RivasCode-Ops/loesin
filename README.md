@@ -20,6 +20,7 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Alerta visual quando composicao manual sai da faixa recomendada.
 - Comparador de estrategias (conservadora, equilibrada, agressiva e manual).
 - Simulador Monte Carlo (10.000 rodadas) com IC 95% para calibrar chance de 14 acertos.
+- Presets de risco (baixo/medio/alto) para ajustar composicao automaticamente.
 
 ## Estrutura
 

@@ -25,6 +25,13 @@
       <section class="panel">
         <h2>Sugestoes</h2>
         <div class="suggestions">
+          <label for="risk-preset" class="label">Preset de risco</label>
+          <select id="risk-preset" class="risk-select">
+            <option value="baixo">Baixo risco (3D/0T)</option>
+            <option value="medio" selected>Medio risco (4D/1T)</option>
+            <option value="alto">Alto risco (5D/2T)</option>
+            <option value="custom">Custom (manual)</option>
+          </select>
           <p id="secas-list" class="secas"></p>
           <button id="apply-balanced-btn" class="secondary-btn" type="button">
             Aplicar sugestao equilibrada

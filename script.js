@@ -20,8 +20,14 @@ let games = [];
 let compositions = [];
 let selectedComposition = null;
 let appliedPicks = [];
-const STORAGE_KEY = "loesin_ticket_v11";
+let selectedRiskPreset = "medio";
+const STORAGE_KEY = "loesin_ticket_v12";
 const MONTE_CARLO_RUNS = 10000;
+const RISK_PRESETS = {
+  baixo: { duplos: 3, triplos: 0, label: "Baixo risco" },
+  medio: { duplos: 4, triplos: 1, label: "Medio risco" },
+  alto: { duplos: 5, triplos: 2, label: "Alto risco" }
+};
 
 async function loadGames() {
   try {
@@ -123,6 +129,7 @@ function normalizeManualPicks(input) {
 function saveState() {
   const payload = {
     selectedComposition: selectedComposition ? selectedComposition.name : null,
+    selectedRiskPreset,
     picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -255,6 +262,18 @@ function renderCompositions() {
   });
 }
 
+function detectPresetByDistribution(distribution) {
+  const found = Object.entries(RISK_PRESETS).find(
+    ([, preset]) => preset.duplos === distribution.duplos && preset.triplos === distribution.triplos
+  );
+  return found ? found[0] : "custom";
+}
+
+function syncRiskPresetControl() {
+  const select = document.getElementById("risk-preset");
+  if (select) select.value = selectedRiskPreset;
+}
+
 function renderStrategyCompare(currentTicket) {
   const root = document.getElementById("strategy-compare");
   if (!root) return;
@@ -294,7 +313,7 @@ function updateResult(ticket) {
   document.getElementById("chance-percent").textContent = formatPercent(p14 * 100);
   document.getElementById("cost-value").textContent = formatCurrency(combos);
   document.getElementById("composition-badge").textContent =
-    `Composicao atual: ${distribution.duplos} duplos e ${distribution.triplos} triplos`;
+    `Composicao atual: ${distribution.duplos} duplos e ${distribution.triplos} triplos (${selectedRiskPreset})`;
 
   const warning = document.getElementById("limit-warning");
   const outOfRange = distribution.duplos < 2 || distribution.duplos > 6 || distribution.triplos < 0 || distribution.triplos > 2;
@@ -378,6 +397,8 @@ function refreshView() {
   renderSuggestions(secas);
   renderCompositions();
   updateResult(appliedPicks);
+  selectedRiskPreset = detectPresetByDistribution(getDistribution(appliedPicks));
+  syncRiskPresetControl();
   saveState();
 }
 
@@ -404,8 +425,19 @@ function togglePick(gameId, symbol) {
   }
 
   renderGames(appliedPicks);
+  selectedRiskPreset = "custom";
+  syncRiskPresetControl();
   updateResult(appliedPicks);
   saveState();
+}
+
+function applyRiskPreset(presetKey) {
+  if (!RISK_PRESETS[presetKey]) return;
+  const target = RISK_PRESETS[presetKey];
+  selectedComposition =
+    compositions.find((c) => c.duplos === target.duplos && c.triplos === target.triplos) || selectedComposition;
+  selectedRiskPreset = presetKey;
+  refreshView();
 }
 
 function setupActions() {
@@ -414,6 +446,7 @@ function setupActions() {
   const exportPngBtn = document.getElementById("export-png-btn");
   const output = document.getElementById("ticket-output");
   const applyBalancedBtn = document.getElementById("apply-balanced-btn");
+  const riskPreset = document.getElementById("risk-preset");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -443,7 +476,19 @@ function setupActions() {
 
   applyBalancedBtn.addEventListener("click", () => {
     selectedComposition = compositions.find((c) => c.name === "Equilibrada") || selectedComposition;
+    selectedRiskPreset = "medio";
     refreshView();
+  });
+
+  riskPreset.addEventListener("change", () => {
+    const selected = riskPreset.value;
+    if (selected === "custom") {
+      selectedRiskPreset = "custom";
+      syncRiskPresetControl();
+      saveState();
+      return;
+    }
+    applyRiskPreset(selected);
   });
 }
 
@@ -456,6 +501,7 @@ async function bootstrap() {
   if (state) {
     const savedComp = compositions.find((c) => c.name === state.selectedComposition);
     if (savedComp) selectedComposition = savedComp;
+    if (typeof state.selectedRiskPreset === "string") selectedRiskPreset = state.selectedRiskPreset;
     appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
     const savedPicks = Array.isArray(state.picks) ? state.picks : [];
     savedPicks.forEach((saved) => {
@@ -470,6 +516,7 @@ async function bootstrap() {
   renderSuggestions(pickSecas(games));
   renderCompositions();
   updateResult(appliedPicks);
+  syncRiskPresetControl();
   saveState();
   setupActions();
 }
