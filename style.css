@@ -184,6 +184,38 @@ body {
   font-weight: bold;
 }
 
+.strategy-compare {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.strategy-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: #ffffff;
+}
+
+.strategy-card h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.98rem;
+}
+
+.strategy-card p {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.strategy-card.is-selected {
+  border-color: #0e7490;
+  background: #f0f9ff;
+}
+
+.strategy-card.is-manual {
+  border-style: dashed;
+}
+
 .cta-panel {
   display: grid;
   gap: 0.7rem;

@@ -145,6 +145,17 @@ function chanceOfHit(ticket) {
   return Math.max(0, Math.min(1, p));
 }
 
+function computeTicketStats(ticket) {
+  const p14 = chanceOfHit(ticket);
+  const inv = p14 > 0 ? Math.round(1 / p14) : 0;
+  const distribution = getDistribution(ticket);
+  const combos = distribution.duplos > 0 || distribution.triplos > 0
+    ? 2 ** distribution.duplos * 3 ** distribution.triplos
+    : 1;
+  const coverage = ((distribution.duplos + distribution.triplos * 2) / 14) * 100;
+  return { p14, inv, distribution, combos, coverage };
+}
+
 function formatPercent(value) {
   return `${value.toFixed(1).replace(".", ",")}%`;
 }
@@ -215,14 +226,37 @@ function renderCompositions() {
   });
 }
 
+function renderStrategyCompare(currentTicket) {
+  const root = document.getElementById("strategy-compare");
+  if (!root) return;
+
+  const secas = pickSecas(games);
+  const suggested = compositions.map((comp) => {
+    const ticket = applyComposition(games, secas, comp);
+    return { name: comp.name, ticket, selected: selectedComposition && selectedComposition.name === comp.name };
+  });
+
+  const manualEntry = { name: "Manual atual", ticket: currentTicket, selected: true, manual: true };
+  const allEntries = [...suggested, manualEntry];
+
+  root.innerHTML = "";
+  allEntries.forEach((entry) => {
+    const stats = computeTicketStats(entry.ticket);
+    const card = document.createElement("article");
+    card.className = `strategy-card ${entry.selected ? "is-selected" : ""} ${entry.manual ? "is-manual" : ""}`.trim();
+    card.innerHTML = `
+      <h3>${entry.name}${entry.selected && !entry.manual ? " (selecionada)" : ""}</h3>
+      <p>Composicao: ${stats.distribution.duplos}D/${stats.distribution.triplos}T</p>
+      <p>Cobertura: ${formatPercent(stats.coverage)} | Comb.: ${stats.combos}</p>
+      <p>Custo: ${formatCurrency(stats.combos)}</p>
+      <p>Chance: ${stats.inv ? `1 em ${stats.inv.toLocaleString("pt-BR")}` : "1 em -"} (${formatPercent(stats.p14 * 100)})</p>
+    `;
+    root.appendChild(card);
+  });
+}
+
 function updateResult(ticket) {
-  const p14 = chanceOfHit(ticket);
-  const inv = p14 > 0 ? Math.round(1 / p14) : 0;
-  const distribution = getDistribution(ticket);
-  const combos = distribution.duplos > 0 || distribution.triplos > 0
-    ? 2 ** distribution.duplos * 3 ** distribution.triplos
-    : 1;
-  const coverage = ((distribution.duplos + distribution.triplos * 2) / 14) * 100;
+  const { p14, inv, distribution, combos, coverage } = computeTicketStats(ticket);
 
   document.getElementById("coverage-value").textContent = formatPercent(coverage);
   document.getElementById("coverage-combos").textContent = `${combos} combinacoes cobertas`;
@@ -241,6 +275,8 @@ function updateResult(ticket) {
     warning.hidden = true;
     warning.textContent = "";
   }
+
+  renderStrategyCompare(ticket);
 }
 
 function buildTicketText(ticket) {
