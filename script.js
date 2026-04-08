@@ -309,6 +309,32 @@ function runMonteCarlo(ticket, runs = MONTE_CARLO_RUNS) {
   return { p, low, high, hits14, runs };
 }
 
+function setBudgetStatus(message, isError = false) {
+  const el = document.getElementById("budget-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
+function chooseBestCompositionForBudget(maxBudget) {
+  if (!Number.isFinite(maxBudget) || maxBudget < 1) return null;
+  const secas = pickSecas(games);
+  const candidates = compositions.filter((c) => c.cost <= maxBudget);
+  if (candidates.length === 0) return null;
+
+  let best = null;
+  candidates.forEach((comp) => {
+    const ticket = applyComposition(games, secas, comp);
+    const stats = computeTicketStats(ticket);
+    const score = stats.p14 + stats.coverage / 1000 - stats.combos / 100000;
+    if (!best || score > best.score) {
+      best = { comp, stats, score };
+    }
+  });
+
+  return best;
+}
+
 function renderGames(ticket) {
   const root = document.getElementById("games-grid");
   root.innerHTML = "";
@@ -677,6 +703,8 @@ function setupActions() {
   const riskPreset = document.getElementById("risk-preset");
   const abJsonAInput = document.getElementById("ab-json-a");
   const abJsonBInput = document.getElementById("ab-json-b");
+  const budgetInput = document.getElementById("budget-input");
+  const optimizeBudgetBtn = document.getElementById("optimize-budget-btn");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -793,6 +821,22 @@ function setupActions() {
     } finally {
       abJsonBInput.value = "";
     }
+  });
+
+  optimizeBudgetBtn.addEventListener("click", () => {
+    const budget = Number(budgetInput.value);
+    const result = chooseBestCompositionForBudget(budget);
+    if (!result) {
+      setBudgetStatus("Nao foi encontrada composicao valida para esse orcamento.", true);
+      return;
+    }
+
+    selectedComposition = result.comp;
+    selectedRiskPreset = detectPresetByDistribution({ duplos: result.comp.duplos, triplos: result.comp.triplos });
+    refreshView();
+    setBudgetStatus(
+      `Melhor composicao ate ${formatCurrency(budget)}: ${result.comp.name} (${result.comp.duplos}D/${result.comp.triplos}T, custo ${formatCurrency(result.comp.cost)}).`
+    );
   });
 }
 

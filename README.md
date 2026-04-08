@@ -24,6 +24,7 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Historico local dos ultimos 5 volantes exportados com reaplicacao em 1 clique.
 - Exportar/importar volante em JSON com validacao e reaplicacao automatica.
 - Comparador A/B de dois volantes JSON com destaque da melhor relacao custo/chance.
+- Otimizador por orcamento para sugerir automaticamente a melhor composicao no teto definido.
 
 ## Estrutura
 
