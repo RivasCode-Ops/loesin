@@ -352,6 +352,17 @@ body {
   color: #334155;
 }
 
+.error-log {
+  margin: 0.5rem 0 0;
+  max-height: 180px;
+  overflow: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.78rem;
+}
+
 .cta-check {
   display: flex;
   align-items: center;

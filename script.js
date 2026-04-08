@@ -25,6 +25,8 @@ let abSnapshotA = null;
 let abSnapshotB = null;
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
+const ROUND_DATA_KEY = "loesin_round_data_v1";
+const LOG_KEY = "loesin_error_log_v1";
 const MONTE_CARLO_RUNS = 10000;
 const RISK_PRESETS = {
   baixo: { duplos: 3, triplos: 0, label: "Baixo risco" },
@@ -40,6 +42,92 @@ async function loadGames() {
   } catch (_error) {
     return fallbackGames;
   }
+}
+
+function appendLog(message, level = "info") {
+  const entry = `[${new Date().toLocaleString("pt-BR")}] ${level.toUpperCase()}: ${message}`;
+  let logs = [];
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    logs = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(logs)) logs = [];
+  } catch (_error) {
+    logs = [];
+  }
+  logs = [entry, ...logs].slice(0, 50);
+  localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  renderErrorLogs();
+}
+
+function renderErrorLogs() {
+  const el = document.getElementById("error-log");
+  if (!el) return;
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    const logs = raw ? JSON.parse(raw) : [];
+    el.textContent = Array.isArray(logs) && logs.length ? logs.join("\n") : "Sem logs.";
+  } catch (_error) {
+    el.textContent = "Sem logs.";
+  }
+}
+
+function setRoundStatus(message, isError = false) {
+  const el = document.getElementById("round-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
+function validateRoundGames(rawGames) {
+  if (!Array.isArray(rawGames) || rawGames.length !== 14) {
+    return { ok: false, reason: "A rodada precisa conter exatamente 14 jogos." };
+  }
+  for (const game of rawGames) {
+    if (!game || typeof game.home !== "string" || typeof game.away !== "string" || !game.probabilities) {
+      return { ok: false, reason: "Cada jogo precisa de home, away e probabilities." };
+    }
+    const h = Number(game.probabilities.H);
+    const d = Number(game.probabilities.D);
+    const a = Number(game.probabilities.A);
+    if (![h, d, a].every((x) => Number.isFinite(x) && x >= 0 && x <= 1)) {
+      return { ok: false, reason: "Probabilidades devem estar entre 0 e 1." };
+    }
+    const sum = h + d + a;
+    if (Math.abs(sum - 1) > 0.02) {
+      return { ok: false, reason: `Probabilidades de ${game.home} x ${game.away} nao somam ~1.` };
+    }
+  }
+  return { ok: true };
+}
+
+function parseRoundCsv(content) {
+  const lines = content
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length < 2) throw new Error("CSV vazio.");
+  const header = lines[0].toLowerCase();
+  if (!header.includes("home") || !header.includes("away") || !header.includes("h") || !header.includes("d") || !header.includes("a")) {
+    throw new Error("Cabecalho CSV esperado: home,away,H,D,A");
+  }
+  return lines.slice(1).map((line) => {
+    const [home, away, h, d, a] = line.split(",").map((v) => v.trim());
+    return { home, away, probabilities: { H: Number(h), D: Number(d), A: Number(a) } };
+  });
+}
+
+function reinitializeRound(rawGames) {
+  games = buildAnalysis(rawGames).slice(0, 14);
+  compositions = buildCompositions();
+  selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
+  appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
+  selectedRiskPreset = "medio";
+  renderGames(appliedPicks);
+  renderSuggestions(pickSecas(games));
+  renderCompositions();
+  updateResult(appliedPicks);
+  syncRiskPresetControl();
+  saveState();
 }
 
 function orderOutcomes(probabilities) {
@@ -705,6 +793,8 @@ function setupActions() {
   const abJsonBInput = document.getElementById("ab-json-b");
   const budgetInput = document.getElementById("budget-input");
   const optimizeBudgetBtn = document.getElementById("optimize-budget-btn");
+  const roundDataInput = document.getElementById("round-data-input");
+  const resetRoundBtn = document.getElementById("reset-round-btn");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -838,11 +928,52 @@ function setupActions() {
       `Melhor composicao ate ${formatCurrency(budget)}: ${result.comp.name} (${result.comp.duplos}D/${result.comp.triplos}T, custo ${formatCurrency(result.comp.cost)}).`
     );
   });
+
+  roundDataInput.addEventListener("change", async () => {
+    const file = roundDataInput.files && roundDataInput.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rawGames = file.name.toLowerCase().endsWith(".csv") ? parseRoundCsv(text) : JSON.parse(text);
+      const validation = validateRoundGames(rawGames);
+      if (!validation.ok) {
+        setRoundStatus(validation.reason, true);
+        appendLog(validation.reason, "warn");
+        return;
+      }
+      localStorage.setItem(ROUND_DATA_KEY, JSON.stringify(rawGames));
+      reinitializeRound(rawGames);
+      setRoundStatus("Rodada importada com sucesso.");
+      appendLog(`Rodada importada (${file.name}).`);
+    } catch (error) {
+      setRoundStatus("Falha ao importar rodada. Use JSON/CSV valido.", true);
+      appendLog(`Erro importando rodada: ${error.message}`, "error");
+    } finally {
+      roundDataInput.value = "";
+    }
+  });
+
+  resetRoundBtn.addEventListener("click", () => {
+    localStorage.removeItem(ROUND_DATA_KEY);
+    reinitializeRound(fallbackGames);
+    setRoundStatus("Dados mock restaurados.");
+    appendLog("Rodada resetada para mock.");
+  });
 }
 
 async function bootstrap() {
-  const rawGames = await loadGames();
-  games = buildAnalysis(rawGames).slice(0, 14);
+  const importedRoundRaw = localStorage.getItem(ROUND_DATA_KEY);
+  let importedRound = null;
+  try {
+    importedRound = importedRoundRaw ? JSON.parse(importedRoundRaw) : null;
+  } catch (_error) {
+    importedRound = null;
+    localStorage.removeItem(ROUND_DATA_KEY);
+  }
+  const sourceGames = importedRound || (await loadGames());
+  const roundValidation = validateRoundGames(sourceGames);
+  const initialGames = roundValidation.ok ? sourceGames : fallbackGames;
+  games = buildAnalysis(initialGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
   const state = loadState();
@@ -867,6 +998,17 @@ async function bootstrap() {
   syncRiskPresetControl();
   saveState();
   setupActions();
+  renderErrorLogs();
+  if (importedRound && roundValidation.ok) {
+    setRoundStatus("Rodada personalizada carregada do armazenamento local.");
+  }
 }
+
+window.addEventListener("error", (event) => {
+  appendLog(event.message || "Erro inesperado de runtime.", "error");
+});
+window.addEventListener("unhandledrejection", (event) => {
+  appendLog(`Promise rejeitada: ${event.reason}`, "error");
+});
 
 bootstrap();

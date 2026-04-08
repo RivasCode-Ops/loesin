@@ -25,6 +25,8 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Exportar/importar volante em JSON com validacao e reaplicacao automatica.
 - Comparador A/B de dois volantes JSON com destaque da melhor relacao custo/chance.
 - Otimizador por orcamento para sugerir automaticamente a melhor composicao no teto definido.
+- Importacao robusta de rodada em CSV/JSON (v2.0) com validacao.
+- Logs de suporte no navegador para ajudar diagnostico de erros.
 
 ## Estrutura
 
@@ -42,9 +44,40 @@ loesin/
 
 1. Abra o `index.html` no navegador (ou rode com um servidor local simples).
 2. Veja os 14 jogos mock da rodada e as probabilidades de Casa/Empate/Fora.
+3. (Opcional) Importe uma rodada real em `CSV` ou `JSON` no painel "Dados da Rodada (v2.0)".
 3. Escolha uma composicao (conservadora, equilibrada ou agressiva).
 4. Marque `Montar minha aposta ideal`.
 5. Clique em `Gerar Volante` para visualizar e baixar o arquivo do volante.
+
+## Formato de importacao de rodada
+
+JSON (array com 14 jogos):
+
+```json
+[
+  { "home": "Flamengo", "away": "Vasco", "probabilities": { "H": 0.65, "D": 0.10, "A": 0.25 } }
+]
+```
+
+CSV (cabecalho obrigatorio):
+
+```text
+home,away,H,D,A
+Flamengo,Vasco,0.65,0.10,0.25
+```
+
+## Testes automatizados
+
+Rodar suite minima de calculos criticos:
+
+```bash
+node --test tests/*.test.mjs
+```
+
+## Releases e versionamento
+
+- Changelog em `CHANGELOG.md`.
+- Tag recomendada para a entrega atual: `v2.0.0`.
 
 ## Logica tecnica aplicada
 

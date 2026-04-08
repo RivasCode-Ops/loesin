@@ -23,6 +23,16 @@
       </section>
 
       <section class="panel">
+        <h2>Dados da Rodada (v2.0)</h2>
+        <div class="ab-actions">
+          <label for="round-data-input" class="import-label">Importar rodada (.json ou .csv)</label>
+          <input id="round-data-input" type="file" accept=".json,.csv,text/csv,application/json" />
+          <button id="reset-round-btn" class="secondary-btn" type="button">Voltar para dados mock</button>
+        </div>
+        <p id="round-status" class="import-status"></p>
+      </section>
+
+      <section class="panel">
         <h2>Sugestoes</h2>
         <div class="suggestions">
           <label for="risk-preset" class="label">Preset de risco</label>
@@ -114,6 +124,10 @@
           <input id="import-json-input" type="file" accept=".json,application/json" />
         </div>
         <p id="import-status" class="import-status"></p>
+        <details>
+          <summary>Logs de suporte</summary>
+          <pre id="error-log" class="error-log"></pre>
+        </details>
         <textarea
           id="ticket-output"
           rows="12"
