@@ -93,6 +93,14 @@ node --test tests/*.test.mjs
 4. Copie o conteudo de `RELEASE_v2.0.0.md` para a descricao.
 5. Clique em `Publish release`.
 
+## Checklist final de entrega
+
+- [x] Funcionalidades implementadas e publicadas em `main`.
+- [x] Testes criticos automatizados (`node --test`).
+- [x] CI configurado em `.github/workflows/ci-tests.yml`.
+- [x] Tag de versao publicada (`v2.0.0`).
+- [ ] Release publicada na UI do GitHub (acao manual final).
+
 ## Logica tecnica aplicada
 
 - Dados mock com 14 jogos reais em `data/games.json`.
