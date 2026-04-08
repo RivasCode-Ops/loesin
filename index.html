@@ -61,7 +61,10 @@
           <input type="checkbox" id="confirm-build" />
           <span>Montar minha aposta ideal</span>
         </label>
-        <button id="generate-btn" disabled>Gerar Volante</button>
+        <div class="cta-actions">
+          <button id="generate-btn" disabled>Gerar Volante (.txt)</button>
+          <button id="export-png-btn" class="secondary-btn" disabled>Exportar Volante (.png)</button>
+        </div>
         <textarea
           id="ticket-output"
           rows="12"

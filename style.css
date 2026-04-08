@@ -189,6 +189,11 @@ body {
   gap: 0.7rem;
 }
 
+.cta-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .cta-check {
   display: flex;
   align-items: center;
@@ -267,6 +272,10 @@ input[type="checkbox"]:focus-visible {
   }
 
   #generate-btn {
+    width: 100%;
+  }
+
+  #export-png-btn {
     width: 100%;
   }
 }

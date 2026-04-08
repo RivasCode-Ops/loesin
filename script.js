@@ -264,6 +264,43 @@ function buildTicketText(ticket) {
   return [...header, ...lines].join("\n");
 }
 
+function exportTicketPng(ticket) {
+  const text = buildTicketText(ticket);
+  const lines = text.split("\n");
+  const width = 1200;
+  const lineHeight = 34;
+  const padding = 48;
+  const headerHeight = 88;
+  const height = headerHeight + padding + lines.length * lineHeight + 24;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "#0f766e";
+  ctx.fillRect(0, 0, width, headerHeight);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 34px Arial, sans-serif";
+  ctx.fillText("Loteria Esportiva Inteligente - Volante", 40, 54);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "24px Consolas, monospace";
+  lines.forEach((line, idx) => {
+    ctx.fillText(line || " ", padding, headerHeight + padding + idx * lineHeight);
+  });
+
+  const url = canvas.toDataURL("image/png");
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "volante-loesin.png";
+  anchor.click();
+}
+
 function refreshView() {
   const secas = pickSecas(games);
   appliedPicks = applyComposition(games, secas, selectedComposition);
@@ -304,11 +341,14 @@ function togglePick(gameId, symbol) {
 function setupActions() {
   const confirm = document.getElementById("confirm-build");
   const generateBtn = document.getElementById("generate-btn");
+  const exportPngBtn = document.getElementById("export-png-btn");
   const output = document.getElementById("ticket-output");
   const applyBalancedBtn = document.getElementById("apply-balanced-btn");
 
   confirm.addEventListener("change", () => {
-    generateBtn.disabled = !confirm.checked;
+    const canGenerate = confirm.checked;
+    generateBtn.disabled = !canGenerate;
+    exportPngBtn.disabled = !canGenerate;
     saveState();
   });
 
@@ -323,6 +363,12 @@ function setupActions() {
     anchor.download = "volante-loesin.txt";
     anchor.click();
     URL.revokeObjectURL(url);
+  });
+
+  exportPngBtn.addEventListener("click", () => {
+    const text = buildTicketText(appliedPicks);
+    output.value = text;
+    exportTicketPng(appliedPicks);
   });
 
   applyBalancedBtn.addEventListener("click", () => {
