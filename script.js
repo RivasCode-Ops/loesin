@@ -22,6 +22,7 @@ let selectedComposition = null;
 let appliedPicks = [];
 let selectedRiskPreset = "medio";
 const STORAGE_KEY = "loesin_ticket_v12";
+const HISTORY_KEY = "loesin_history_v1";
 const MONTE_CARLO_RUNS = 10000;
 const RISK_PRESETS = {
   baixo: { duplos: 3, triplos: 0, label: "Baixo risco" },
@@ -143,6 +144,21 @@ function loadState() {
   } catch (_error) {
     return null;
   }
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveHistory(items) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 5)));
 }
 
 function chanceOfHit(ticket) {
@@ -303,6 +319,35 @@ function renderStrategyCompare(currentTicket) {
   });
 }
 
+function renderTicketHistory() {
+  const root = document.getElementById("ticket-history");
+  if (!root) return;
+  const history = loadHistory();
+  root.innerHTML = "";
+
+  if (history.length === 0) {
+    root.innerHTML = "<p>Nenhum volante salvo ainda.</p>";
+    return;
+  }
+
+  history.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "history-item";
+    card.innerHTML = `
+      <p><strong>${item.label}</strong></p>
+      <p>${item.timestamp}</p>
+      <p>Composicao: ${item.distribution}</p>
+    `;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secondary-btn";
+    btn.textContent = "Reaplicar";
+    btn.addEventListener("click", () => applyHistoryItem(item.id));
+    card.appendChild(btn);
+    root.appendChild(card);
+  });
+}
+
 function updateResult(ticket) {
   const { p14, inv, distribution, combos, coverage } = computeTicketStats(ticket);
   const mc = runMonteCarlo(ticket);
@@ -330,6 +375,7 @@ function updateResult(ticket) {
     `IC 95%: ${formatPercent(mc.low * 100)} - ${formatPercent(mc.high * 100)} (${mc.hits14}/${mc.runs})`;
 
   renderStrategyCompare(ticket);
+  renderTicketHistory();
 }
 
 function buildTicketText(ticket) {
@@ -440,6 +486,47 @@ function applyRiskPreset(presetKey) {
   refreshView();
 }
 
+function captureHistory(label = "Volante salvo") {
+  const history = loadHistory();
+  const distribution = getDistribution(appliedPicks);
+  const snapshot = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    label,
+    timestamp: new Date().toLocaleString("pt-BR"),
+    distribution: `${distribution.duplos}D/${distribution.triplos}T`,
+    selectedRiskPreset,
+    selectedComposition: selectedComposition ? selectedComposition.name : null,
+    picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
+  };
+  const next = [snapshot, ...history];
+  saveHistory(next);
+  renderTicketHistory();
+}
+
+function applyHistoryItem(id) {
+  const history = loadHistory();
+  const item = history.find((entry) => entry.id === id);
+  if (!item) return;
+
+  const savedComp = compositions.find((c) => c.name === item.selectedComposition);
+  if (savedComp) selectedComposition = savedComp;
+  selectedRiskPreset = item.selectedRiskPreset || "custom";
+  appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
+  const savedPicks = Array.isArray(item.picks) ? item.picks : [];
+  savedPicks.forEach((saved) => {
+    const match = appliedPicks.find((g) => g.id === saved.id);
+    const picks = normalizeManualPicks(saved.picks);
+    if (match && picks.length > 0) match.picks = picks;
+  });
+
+  renderGames(appliedPicks);
+  renderSuggestions(pickSecas(games));
+  renderCompositions();
+  updateResult(appliedPicks);
+  syncRiskPresetControl();
+  saveState();
+}
+
 function setupActions() {
   const confirm = document.getElementById("confirm-build");
   const generateBtn = document.getElementById("generate-btn");
@@ -458,6 +545,7 @@ function setupActions() {
   generateBtn.addEventListener("click", () => {
     const text = buildTicketText(appliedPicks);
     output.value = text;
+    captureHistory("Volante exportado em TXT");
 
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -472,6 +560,7 @@ function setupActions() {
     const text = buildTicketText(appliedPicks);
     output.value = text;
     exportTicketPng(appliedPicks);
+    captureHistory("Volante exportado em PNG");
   });
 
   applyBalancedBtn.addEventListener("click", () => {

@@ -252,6 +252,30 @@ body {
   border-style: dashed;
 }
 
+.ticket-history {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.history-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: #ffffff;
+}
+
+.history-item p {
+  margin: 0.2rem 0;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.history-item button {
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
+
 .cta-panel {
   display: grid;
   gap: 0.7rem;
