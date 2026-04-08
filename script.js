@@ -20,6 +20,7 @@ let games = [];
 let compositions = [];
 let selectedComposition = null;
 let appliedPicks = [];
+const STORAGE_KEY = "loesin_ticket_v11";
 
 async function loadGames() {
   try {
@@ -113,6 +114,29 @@ function applyComposition(analysis, secas, composition) {
   });
 }
 
+function normalizeManualPicks(input) {
+  const values = Array.isArray(input) ? input.filter((v) => ["H", "D", "A"].includes(v)) : [];
+  return [...new Set(values)];
+}
+
+function saveState() {
+  const payload = {
+    selectedComposition: selectedComposition ? selectedComposition.name : null,
+    picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
 function chanceOfHit(ticket) {
   const p = ticket.reduce((acc, game) => {
     const coveredProb = game.picks.reduce((sum, symbol) => sum + game.probabilities[symbol], 0);
@@ -152,10 +176,13 @@ function renderGames(ticket) {
     row.className = "pick-row";
 
     ["H", "D", "A"].forEach((symbol) => {
-      const chip = document.createElement("span");
+      const chip = document.createElement("button");
       const isSelected = game.picks.includes(symbol);
-      chip.className = `pick-chip ${isSelected ? "active locked" : ""}`.trim();
+      chip.className = `pick-chip ${isSelected ? "active" : ""}`.trim();
       chip.textContent = outcomeLabel[symbol];
+      chip.type = "button";
+      chip.setAttribute("aria-pressed", String(isSelected));
+      chip.addEventListener("click", () => togglePick(game.id, symbol));
       row.appendChild(chip);
     });
 
@@ -191,19 +218,42 @@ function renderCompositions() {
 function updateResult(ticket) {
   const p14 = chanceOfHit(ticket);
   const inv = p14 > 0 ? Math.round(1 / p14) : 0;
-  document.getElementById("coverage-value").textContent = formatPercent(selectedComposition.coverage);
-  document.getElementById("coverage-combos").textContent = `${selectedComposition.combos} combinacoes cobertas`;
+  const distribution = getDistribution(ticket);
+  const combos = distribution.duplos > 0 || distribution.triplos > 0
+    ? 2 ** distribution.duplos * 3 ** distribution.triplos
+    : 1;
+  const coverage = ((distribution.duplos + distribution.triplos * 2) / 14) * 100;
+
+  document.getElementById("coverage-value").textContent = formatPercent(coverage);
+  document.getElementById("coverage-combos").textContent = `${combos} combinacoes cobertas`;
   document.getElementById("chance-value").textContent = inv ? `1 em ${inv.toLocaleString("pt-BR")}` : "1 em -";
   document.getElementById("chance-percent").textContent = formatPercent(p14 * 100);
-  document.getElementById("cost-value").textContent = formatCurrency(selectedComposition.cost);
+  document.getElementById("cost-value").textContent = formatCurrency(combos);
+  document.getElementById("composition-badge").textContent =
+    `Composicao atual: ${distribution.duplos} duplos e ${distribution.triplos} triplos`;
+
+  const warning = document.getElementById("limit-warning");
+  const outOfRange = distribution.duplos < 2 || distribution.duplos > 6 || distribution.triplos < 0 || distribution.triplos > 2;
+  if (outOfRange) {
+    warning.hidden = false;
+    warning.textContent = "A composicao manual saiu da faixa recomendada (duplos 2-6 e triplos 0-2).";
+  } else {
+    warning.hidden = true;
+    warning.textContent = "";
+  }
 }
 
 function buildTicketText(ticket) {
+  const distribution = getDistribution(ticket);
+  const combos = distribution.duplos > 0 || distribution.triplos > 0
+    ? 2 ** distribution.duplos * 3 ** distribution.triplos
+    : 1;
+  const coverage = ((distribution.duplos + distribution.triplos * 2) / 14) * 100;
   const header = [
     "LOTERIA ESPORTIVA INTELIGENTE - VOLANTE SUGERIDO",
-    `Composicao: ${selectedComposition.name} (${selectedComposition.duplos}D/${selectedComposition.triplos}T)`,
-    `Cobertura: ${formatPercent(selectedComposition.coverage)} | Combinacoes: ${selectedComposition.combos}`,
-    `Custo estimado: ${formatCurrency(selectedComposition.cost)}`,
+    `Composicao: ${distribution.duplos}D/${distribution.triplos}T`,
+    `Cobertura: ${formatPercent(coverage)} | Combinacoes: ${combos}`,
+    `Custo estimado: ${formatCurrency(combos)}`,
     ""
   ];
 
@@ -221,15 +271,45 @@ function refreshView() {
   renderSuggestions(secas);
   renderCompositions();
   updateResult(appliedPicks);
+  saveState();
+}
+
+function getDistribution(ticket) {
+  return ticket.reduce(
+    (acc, g) => {
+      if (g.picks.length === 2) acc.duplos += 1;
+      if (g.picks.length === 3) acc.triplos += 1;
+      return acc;
+    },
+    { duplos: 0, triplos: 0 }
+  );
+}
+
+function togglePick(gameId, symbol) {
+  const game = appliedPicks.find((g) => g.id === gameId);
+  if (!game) return;
+
+  if (game.picks.includes(symbol)) {
+    if (game.picks.length === 1) return;
+    game.picks = game.picks.filter((p) => p !== symbol);
+  } else {
+    game.picks = [...game.picks, symbol].sort((a, b) => ["H", "D", "A"].indexOf(a) - ["H", "D", "A"].indexOf(b));
+  }
+
+  renderGames(appliedPicks);
+  updateResult(appliedPicks);
+  saveState();
 }
 
 function setupActions() {
   const confirm = document.getElementById("confirm-build");
   const generateBtn = document.getElementById("generate-btn");
   const output = document.getElementById("ticket-output");
+  const applyBalancedBtn = document.getElementById("apply-balanced-btn");
 
   confirm.addEventListener("change", () => {
     generateBtn.disabled = !confirm.checked;
+    saveState();
   });
 
   generateBtn.addEventListener("click", () => {
@@ -244,6 +324,11 @@ function setupActions() {
     anchor.click();
     URL.revokeObjectURL(url);
   });
+
+  applyBalancedBtn.addEventListener("click", () => {
+    selectedComposition = compositions.find((c) => c.name === "Equilibrada") || selectedComposition;
+    refreshView();
+  });
 }
 
 async function bootstrap() {
@@ -251,7 +336,25 @@ async function bootstrap() {
   games = buildAnalysis(rawGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
-  refreshView();
+  const state = loadState();
+  if (state) {
+    const savedComp = compositions.find((c) => c.name === state.selectedComposition);
+    if (savedComp) selectedComposition = savedComp;
+    appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
+    const savedPicks = Array.isArray(state.picks) ? state.picks : [];
+    savedPicks.forEach((saved) => {
+      const match = appliedPicks.find((g) => g.id === saved.id);
+      const picks = normalizeManualPicks(saved.picks);
+      if (match && picks.length > 0) match.picks = picks;
+    });
+  } else {
+    appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
+  }
+  renderGames(appliedPicks);
+  renderSuggestions(pickSecas(games));
+  renderCompositions();
+  updateResult(appliedPicks);
+  saveState();
   setupActions();
 }
 

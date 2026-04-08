@@ -14,6 +14,9 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Percentual de cobertura do volante e total de combinacoes.
 - Chance estimada de 14 acertos (formato `1 em N` e percentual).
 - Geracao de volante final exportavel em `.txt`.
+- Edicao manual de palpites por jogo com recaculo em tempo real.
+- Persistencia local (`localStorage`) da composicao e volante manual.
+- Alerta visual quando composicao manual sai da faixa recomendada.
 
 ## Estrutura
 
