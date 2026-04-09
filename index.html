@@ -22,6 +22,7 @@
     <main class="container">
       <section class="panel">
         <h2>Jogos da Rodada</h2>
+        <div id="round-official-info" class="round-official-info" hidden></div>
         <div id="games-grid" class="games-grid"></div>
       </section>
 
@@ -35,6 +36,17 @@
             <button id="reset-round-btn" class="secondary-btn" type="button">Voltar para dados mock</button>
           </div>
           <p id="round-status" class="import-status"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Analise por Jogo (14)</h2>
+          <div class="analysis-controls">
+            <label for="analysis-budget-input" class="import-label">Orcamento para analise (R$)</label>
+            <input id="analysis-budget-input" type="number" min="1" step="1" value="100" />
+            <button id="analysis-budget-btn" class="secondary-btn" type="button">Analisar e distribuir valor</button>
+            <p id="analysis-budget-status" class="import-status"></p>
+          </div>
+          <div id="game-insights" class="game-insights"></div>
         </section>
 
         <section class="panel">

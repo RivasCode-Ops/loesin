@@ -1,20 +1,22 @@
 {
   "contestNumber": "1242",
   "contestDate": "11/04/2026 (Sabado)",
+  "bettingPeriod": "09/04/2026 ate as 15h do dia 11/04/2026",
+  "gamesPeriod": "11/04/2026 a 12/04/2026",
   "games": [
-    { "home": "JOGO 01 - TIME CASA", "away": "JOGO 01 - TIME FORA", "probabilities": { "H": 0.45, "D": 0.28, "A": 0.27 } },
-    { "home": "JOGO 02 - TIME CASA", "away": "JOGO 02 - TIME FORA", "probabilities": { "H": 0.52, "D": 0.25, "A": 0.23 } },
-    { "home": "JOGO 03 - TIME CASA", "away": "JOGO 03 - TIME FORA", "probabilities": { "H": 0.40, "D": 0.31, "A": 0.29 } },
-    { "home": "JOGO 04 - TIME CASA", "away": "JOGO 04 - TIME FORA", "probabilities": { "H": 0.57, "D": 0.24, "A": 0.19 } },
-    { "home": "JOGO 05 - TIME CASA", "away": "JOGO 05 - TIME FORA", "probabilities": { "H": 0.49, "D": 0.27, "A": 0.24 } },
-    { "home": "JOGO 06 - TIME CASA", "away": "JOGO 06 - TIME FORA", "probabilities": { "H": 0.43, "D": 0.30, "A": 0.27 } },
-    { "home": "JOGO 07 - TIME CASA", "away": "JOGO 07 - TIME FORA", "probabilities": { "H": 0.55, "D": 0.24, "A": 0.21 } },
-    { "home": "JOGO 08 - TIME CASA", "away": "JOGO 08 - TIME FORA", "probabilities": { "H": 0.47, "D": 0.29, "A": 0.24 } },
-    { "home": "JOGO 09 - TIME CASA", "away": "JOGO 09 - TIME FORA", "probabilities": { "H": 0.38, "D": 0.32, "A": 0.30 } },
-    { "home": "JOGO 10 - TIME CASA", "away": "JOGO 10 - TIME FORA", "probabilities": { "H": 0.51, "D": 0.26, "A": 0.23 } },
-    { "home": "JOGO 11 - TIME CASA", "away": "JOGO 11 - TIME FORA", "probabilities": { "H": 0.46, "D": 0.28, "A": 0.26 } },
-    { "home": "JOGO 12 - TIME CASA", "away": "JOGO 12 - TIME FORA", "probabilities": { "H": 0.59, "D": 0.23, "A": 0.18 } },
-    { "home": "JOGO 13 - TIME CASA", "away": "JOGO 13 - TIME FORA", "probabilities": { "H": 0.42, "D": 0.30, "A": 0.28 } },
-    { "home": "JOGO 14 - TIME CASA", "away": "JOGO 14 - TIME FORA", "probabilities": { "H": 0.50, "D": 0.27, "A": 0.23 } }
+    { "home": "FLUMINENSE/RJ", "away": "FLAMENGO/RJ", "gameDate": "Sabado", "probabilities": { "H": 0.35, "D": 0.31, "A": 0.34 } },
+    { "home": "JUVENTUDE/RS", "away": "GOIAS/GO", "gameDate": "Sabado", "probabilities": { "H": 0.45, "D": 0.29, "A": 0.26 } },
+    { "home": "REMO/PA", "away": "VASCO DA GAMA/RJ", "gameDate": "Sabado", "probabilities": { "H": 0.28, "D": 0.30, "A": 0.42 } },
+    { "home": "VITORIA/BA", "away": "SAO PAULO/SP", "gameDate": "Sabado", "probabilities": { "H": 0.29, "D": 0.31, "A": 0.40 } },
+    { "home": "SPORT/PE", "away": "AVAI/SC", "gameDate": "Sabado", "probabilities": { "H": 0.48, "D": 0.28, "A": 0.24 } },
+    { "home": "MIRASSOL/SP", "away": "BAHIA/BA", "gameDate": "Sabado", "probabilities": { "H": 0.37, "D": 0.30, "A": 0.33 } },
+    { "home": "SANTOS/SP", "away": "ATLETICO/MG", "gameDate": "Sabado", "probabilities": { "H": 0.33, "D": 0.30, "A": 0.37 } },
+    { "home": "INTERNACIONAL/RS", "away": "GREMIO/RS", "gameDate": "Sabado", "probabilities": { "H": 0.36, "D": 0.31, "A": 0.33 } },
+    { "home": "CEARA/CE", "away": "NAUTICO/PE", "gameDate": "Sabado", "probabilities": { "H": 0.52, "D": 0.27, "A": 0.21 } },
+    { "home": "ATHLETICO/PR", "away": "CHAPECOENSE/SC", "gameDate": "Domingo", "probabilities": { "H": 0.57, "D": 0.24, "A": 0.19 } },
+    { "home": "BOTAFOGO/RJ", "away": "CORITIBA/PR", "gameDate": "Domingo", "probabilities": { "H": 0.54, "D": 0.25, "A": 0.21 } },
+    { "home": "AMERICA/MG", "away": "NOVORIZONTINO/SP", "gameDate": "Domingo", "probabilities": { "H": 0.49, "D": 0.28, "A": 0.23 } },
+    { "home": "CORINTHIANS/SP", "away": "PALMEIRAS/SP", "gameDate": "Domingo", "probabilities": { "H": 0.30, "D": 0.33, "A": 0.37 } },
+    { "home": "CRUZEIRO/MG", "away": "ATLETICO/GO", "gameDate": "Domingo", "probabilities": { "H": 0.46, "D": 0.29, "A": 0.25 } }
   ]
 }

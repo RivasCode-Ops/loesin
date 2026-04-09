@@ -25,6 +25,10 @@ let abSnapshotA = null;
 let abSnapshotB = null;
 let currentContestNumber = "";
 let currentContestDate = "";
+let currentBettingPeriod = "";
+let currentGamesPeriod = "";
+let analysisBudget = 100;
+let disagreementGameIds = new Set();
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
 const ROUND_DATA_KEY = "loesin_round_data_v1";
@@ -142,10 +146,12 @@ function extractRoundPayload(input) {
     return {
       games: input.games,
       contestNumber: String(input.contestNumber || ""),
-      contestDate: String(input.contestDate || "")
+      contestDate: String(input.contestDate || ""),
+      bettingPeriod: String(input.bettingPeriod || ""),
+      gamesPeriod: String(input.gamesPeriod || "")
     };
   }
-  return { games: null, contestNumber: "", contestDate: "" };
+  return { games: null, contestNumber: "", contestDate: "", bettingPeriod: "", gamesPeriod: "" };
 }
 
 function validateRoundGames(rawGames) {
@@ -215,9 +221,27 @@ function buildAnalysis(rawGames) {
       bestProb: ordered[0][1],
       second: ordered[1][0],
       secondProb: ordered[1][1],
-      confidenceMargin: ordered[0][1] - ordered[1][1]
+      confidenceMargin: ordered[0][1] - ordered[1][1],
+      gameDate: game.gameDate || ""
     };
   });
+}
+
+function renderRoundOfficialInfo() {
+  const box = document.getElementById("round-official-info");
+  if (!box) return;
+  const hasAny = currentContestNumber || currentContestDate || currentBettingPeriod || currentGamesPeriod;
+  if (!hasAny) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `
+    <p><strong>Concurso ${currentContestNumber || "-"}</strong> (${currentContestDate || "-"})</p>
+    <p>Periodo de apostas: ${currentBettingPeriod || "-"}</p>
+    <p>Realizacao dos jogos: ${currentGamesPeriod || "-"}</p>
+  `;
 }
 
 function pickSecas(analysis) {
@@ -541,6 +565,130 @@ function setBudgetStatus(message, isError = false) {
   el.style.color = isError ? "#b91c1c" : "#334155";
 }
 
+function setAnalysisBudgetStatus(message, isError = false) {
+  const el = document.getElementById("analysis-budget-status");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#334155";
+}
+
+function classifyGameRecommendation(game) {
+  const ordered = orderOutcomes(game.probabilities);
+  const bestProb = ordered[0][1];
+  const secondProb = ordered[1][1];
+  const margin = bestProb - secondProb;
+  if (bestProb >= 0.6 && margin >= 0.18) return { mode: "simples", picks: [ordered[0][0]], margin, bestProb };
+  if (bestProb >= 0.45 && margin >= 0.08) return { mode: "duplo", picks: [ordered[0][0], ordered[1][0]], margin, bestProb };
+  return { mode: "triplo", picks: ["H", "D", "A"], margin, bestProb };
+}
+
+function getRecommendedPicksForGame(game, mode) {
+  const ordered = orderOutcomes(game.probabilities);
+  if (mode === "simples") return [ordered[0][0]];
+  if (mode === "duplo") return [ordered[0][0], ordered[1][0]];
+  return ["H", "D", "A"];
+}
+
+function allocateBudgetByGame(ticket, totalBudget) {
+  const validBudget = Number.isFinite(totalBudget) && totalBudget > 0 ? totalBudget : 0;
+  if (!validBudget) return new Map();
+  const weights = ticket.map((game) => {
+    const rec = classifyGameRecommendation(game);
+    const uncertainty = 1 - rec.margin;
+    const modeWeight = rec.mode === "simples" ? 1 : rec.mode === "duplo" ? 1.7 : 2.4;
+    return { id: game.id, weight: Math.max(0.2, modeWeight * uncertainty) };
+  });
+  const totalWeight = weights.reduce((acc, item) => acc + item.weight, 0) || 1;
+  const amounts = new Map();
+  weights.forEach((item) => {
+    amounts.set(item.id, (item.weight / totalWeight) * validBudget);
+  });
+  return amounts;
+}
+
+function setGamePicksByMode(gameId, mode) {
+  const game = appliedPicks.find((g) => g.id === gameId);
+  if (!game) return;
+  game.picks = getRecommendedPicksForGame(game, mode);
+  selectedRiskPreset = "custom";
+  syncRiskPresetControl();
+  renderGames(appliedPicks);
+  updateResult(appliedPicks);
+  saveState();
+}
+
+function renderGameInsights(ticket) {
+  const root = document.getElementById("game-insights");
+  if (!root) return;
+  const budgetMap = allocateBudgetByGame(ticket, analysisBudget);
+  const bestForBudget = chooseBestCompositionForBudget(analysisBudget);
+  root.innerHTML = "";
+
+  const summary = document.createElement("p");
+  summary.className = "insight-meta";
+  if (bestForBudget) {
+    summary.textContent =
+      `Para ${formatCurrency(analysisBudget)}, composicao sugerida: ${bestForBudget.comp.name} ` +
+      `(${bestForBudget.comp.duplos}D/${bestForBudget.comp.triplos}T, custo ${formatCurrency(bestForBudget.comp.cost)}).`;
+  } else {
+    summary.textContent = "Orcamento abaixo do minimo para compor combinacoes sugeridas.";
+  }
+  root.appendChild(summary);
+
+  ticket.forEach((game) => {
+    const rec = classifyGameRecommendation(game);
+    const item = document.createElement("article");
+    item.className = "insight-item";
+    const recommendationClass = rec.mode === "duplo" ? "duplo" : rec.mode === "triplo" ? "triplo" : "";
+    const isDisagreed = disagreementGameIds.has(game.id);
+    const suggested = rec.picks.map((p) => outcomeLabel[p]).join("/");
+    const current = game.picks.map((p) => outcomeLabel[p]).join("/");
+    const allocated = budgetMap.get(game.id) || 0;
+    item.innerHTML = `
+      <strong>Jogo ${game.id}: ${game.home} vs ${game.away}</strong>
+      <p class="insight-meta">
+        <span class="insight-recommendation ${recommendationClass}">${rec.mode.toUpperCase()}</span>
+        Sugerido: ${suggested} | Atual: ${current}
+      </p>
+      <p class="insight-meta">
+        Confianca: ${(rec.bestProb * 100).toFixed(1)}% | Margem: ${(rec.margin * 100).toFixed(1)}% |
+        Parcela do valor: ${formatCurrency(allocated)}
+      </p>
+      <label class="insight-toggle">
+        <input type="checkbox" data-disagree="${game.id}" ${isDisagreed ? "checked" : ""} />
+        Nao concordo com a sugestao automatica deste jogo
+      </label>
+      <div class="insight-detail" ${isDisagreed ? "" : "hidden"}>
+        <p class="insight-meta">Detalhamento: ajuste este jogo sem mexer nos demais.</p>
+        <div class="insight-actions">
+          <button type="button" class="secondary-btn" data-mode="simples" data-game-id="${game.id}">Aplicar simples</button>
+          <button type="button" class="secondary-btn" data-mode="duplo" data-game-id="${game.id}">Aplicar duplo</button>
+          <button type="button" class="secondary-btn" data-mode="triplo" data-game-id="${game.id}">Aplicar triplo</button>
+        </div>
+      </div>
+    `;
+    root.appendChild(item);
+  });
+
+  root.querySelectorAll("input[data-disagree]").forEach((input) => {
+    input.addEventListener("change", (event) => {
+      const gameId = Number(event.target.getAttribute("data-disagree"));
+      if (event.target.checked) disagreementGameIds.add(gameId);
+      else disagreementGameIds.delete(gameId);
+      renderGameInsights(appliedPicks);
+    });
+  });
+
+  root.querySelectorAll("button[data-mode][data-game-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const mode = btn.getAttribute("data-mode");
+      const gameId = Number(btn.getAttribute("data-game-id"));
+      setGamePicksByMode(gameId, mode);
+      setAnalysisBudgetStatus(`Jogo ${gameId} ajustado manualmente para ${mode}.`);
+    });
+  });
+}
+
 function chooseBestCompositionForBudget(maxBudget) {
   if (!Number.isFinite(maxBudget) || maxBudget < 1) return null;
   const secas = pickSecas(games);
@@ -563,21 +711,46 @@ function chooseBestCompositionForBudget(maxBudget) {
 function renderGames(ticket) {
   const root = document.getElementById("games-grid");
   root.innerHTML = "";
+  const table = document.createElement("table");
+  table.className = "round-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Jogo</th>
+        <th>Coluna 1 (Casa)</th>
+        <th>X</th>
+        <th>Coluna 2 (Fora)</th>
+        <th>Data</th>
+        <th>Palpites</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
 
+  const tbody = table.querySelector("tbody");
   ticket.forEach((game) => {
-    const card = document.createElement("article");
-    card.className = "game-card";
+    const tr = document.createElement("tr");
 
-    const title = document.createElement("h3");
-    title.className = "game-title";
-    title.textContent = `Jogo ${game.id}: ${game.home} x ${game.away}`;
+    const gameCell = document.createElement("td");
+    gameCell.className = "game-index";
+    gameCell.textContent = String(game.id);
 
-    const probs = document.createElement("p");
-    probs.className = "prob-line";
-    probs.textContent =
-      `Casa: ${(game.probabilities.H * 100).toFixed(0)}% | ` +
-      `Fora: ${(game.probabilities.A * 100).toFixed(0)}% | ` +
-      `Empate: ${(game.probabilities.D * 100).toFixed(0)}%`;
+    const homeCell = document.createElement("td");
+    homeCell.innerHTML = `<strong>${game.home}</strong>`;
+
+    const drawCell = document.createElement("td");
+    drawCell.className = "draw-cell";
+    drawCell.textContent = "Empate";
+
+    const awayCell = document.createElement("td");
+    awayCell.innerHTML = `<strong>${game.away}</strong>`;
+
+    const dateCell = document.createElement("td");
+    dateCell.className = "draw-cell";
+    dateCell.textContent = game.gameDate || "-";
+
+    const picksCell = document.createElement("td");
+    picksCell.className = "picks-cell";
 
     const row = document.createElement("div");
     row.className = "pick-row";
@@ -593,9 +766,20 @@ function renderGames(ticket) {
       row.appendChild(chip);
     });
 
-    card.append(title, probs, row);
-    root.appendChild(card);
+    const probs = document.createElement("small");
+    probs.className = "prob-inline";
+    probs.textContent =
+      `H ${(game.probabilities.H * 100).toFixed(0)}% | ` +
+      `D ${(game.probabilities.D * 100).toFixed(0)}% | ` +
+      `A ${(game.probabilities.A * 100).toFixed(0)}%`;
+
+    picksCell.append(row, probs);
+    tr.append(gameCell, homeCell, drawCell, awayCell, dateCell, picksCell);
+    tbody.appendChild(tr);
   });
+
+  root.appendChild(table);
+  renderRoundOfficialInfo();
 }
 
 function renderSuggestions(secas) {
@@ -722,6 +906,7 @@ function updateResult(ticket) {
 
   renderStrategyCompare(ticket);
   renderTicketHistory();
+  renderGameInsights(ticket);
 }
 
 function buildTicketText(ticket) {
@@ -934,6 +1119,8 @@ function setupActions() {
   const optimizeBudgetBtn = document.getElementById("optimize-budget-btn");
   const roundDataInput = document.getElementById("round-data-input");
   const resetRoundBtn = document.getElementById("reset-round-btn");
+  const analysisBudgetInput = document.getElementById("analysis-budget-input");
+  const analysisBudgetBtn = document.getElementById("analysis-budget-btn");
   const contestNumberInput = document.getElementById("contest-number-input");
   const contestDateInput = document.getElementById("contest-date-input");
   const contestResultInput = document.getElementById("contest-result-input");
@@ -1074,6 +1261,20 @@ function setupActions() {
     );
   });
 
+  analysisBudgetBtn.addEventListener("click", () => {
+    const value = Number(analysisBudgetInput.value);
+    if (!Number.isFinite(value) || value <= 0) {
+      setAnalysisBudgetStatus("Informe um valor valido para analise.", true);
+      return;
+    }
+    analysisBudget = value;
+    renderGameInsights(appliedPicks);
+    const detailCount = disagreementGameIds.size;
+    setAnalysisBudgetStatus(
+      `Analise atualizada para ${formatCurrency(value)}. Jogos em detalhamento: ${detailCount}.`
+    );
+  });
+
   roundDataInput.addEventListener("change", async () => {
     const file = roundDataInput.files && roundDataInput.files[0];
     if (!file) return;
@@ -1088,9 +1289,17 @@ function setupActions() {
       }
       currentContestNumber = payload.contestNumber || "";
       currentContestDate = payload.contestDate || "";
+      currentBettingPeriod = payload.bettingPeriod || "";
+      currentGamesPeriod = payload.gamesPeriod || "";
       localStorage.setItem(
         ROUND_DATA_KEY,
-        JSON.stringify({ contestNumber: currentContestNumber, contestDate: currentContestDate, games: payload.games })
+        JSON.stringify({
+          contestNumber: currentContestNumber,
+          contestDate: currentContestDate,
+          bettingPeriod: currentBettingPeriod,
+          gamesPeriod: currentGamesPeriod,
+          games: payload.games
+        })
       );
       reinitializeRound(payload.games);
       setRoundBadge("official");
@@ -1108,6 +1317,8 @@ function setupActions() {
     localStorage.removeItem(ROUND_DATA_KEY);
     currentContestNumber = "";
     currentContestDate = "";
+    currentBettingPeriod = "";
+    currentGamesPeriod = "";
     reinitializeRound(fallbackGames);
     setRoundBadge("mock");
     setRoundStatus("Dados mock restaurados.");
@@ -1196,6 +1407,8 @@ async function bootstrap() {
   const initialGames = roundValidation.ok ? sourcePayload.games : fallbackGames;
   currentContestNumber = sourcePayload.contestNumber || "";
   currentContestDate = sourcePayload.contestDate || "";
+  currentBettingPeriod = sourcePayload.bettingPeriod || "";
+  currentGamesPeriod = sourcePayload.gamesPeriod || "";
   games = buildAnalysis(initialGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
@@ -1223,6 +1436,7 @@ async function bootstrap() {
   saveState();
   setupActions();
   renderErrorLogs();
+  setAnalysisBudgetStatus(`Analise inicial pronta com orcamento de ${formatCurrency(analysisBudget)}.`);
   if ((importedRound || packagedContest) && roundValidation.ok) {
     setRoundBadge("official");
     if (importedRound) {
