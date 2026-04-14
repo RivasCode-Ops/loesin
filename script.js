@@ -1691,6 +1691,38 @@ async function bootstrap() {
   }
 
   setupOddsMarketPanel();
+  setupHubNavigation();
+}
+
+function setupHubNavigation() {
+  const nav = document.querySelector(".hub-nav");
+  if (!nav) return;
+  const panes = {
+    loteca: document.getElementById("hub-pane-loteca"),
+    odds: document.getElementById("hub-pane-odds"),
+    arquivo: document.getElementById("hub-pane-arquivo")
+  };
+  const buttons = nav.querySelectorAll(".hub-nav-btn[data-hub]");
+  function showPane(key) {
+    Object.entries(panes).forEach(([k, el]) => {
+      if (!el) return;
+      const on = k === key;
+      el.hidden = !on;
+      el.classList.toggle("hub-pane--active", on);
+    });
+    buttons.forEach((b) => {
+      const k = b.getAttribute("data-hub");
+      const active = k === key;
+      b.classList.toggle("hub-nav-btn--active", active);
+      b.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-hub");
+      if (key) showPane(key);
+    });
+  });
 }
 
 function parseOddsCell(val, mod) {
