@@ -15,7 +15,7 @@ Repositorio oficial: [https://github.com/RivasCode-Ops/loesin](https://github.co
 - Chance estimada de 14 acertos (formato `1 em N` e percentual).
 - Geracao de volante final exportavel em `.txt`.
 - Exportacao visual do volante em `.png` (via Canvas API, sem libs externas).
-- Edicao manual de palpites por jogo com recaculo em tempo real.
+- Edicao manual de palpites por jogo com recalculo em tempo real.
 - Persistencia local (`localStorage`) da composicao e volante manual.
 - Alerta visual quando composicao manual sai da faixa recomendada.
 - Comparador de estrategias (conservadora, equilibrada, agressiva e manual).
@@ -36,8 +36,18 @@ loesin/
 ├── style.css
 ├── script.js
 ├── README.md
-└── data/
-    └── games.json
+├── CHANGELOG.md
+├── RELEASE_v2.0.0.md
+├── assets/
+├── data/
+│   ├── games.json
+│   ├── round-example.csv
+│   └── round-example.json
+├── lib/
+├── scripts/
+├── tests/
+└── .github/
+    └── workflows/
 ```
 
 ## Como usar
@@ -45,9 +55,9 @@ loesin/
 1. Abra o `index.html` no navegador (ou rode com um servidor local simples).
 2. Veja os 14 jogos mock da rodada e as probabilidades de Casa/Empate/Fora.
 3. (Opcional) Importe uma rodada real em `CSV` ou `JSON` no painel "Dados da Rodada (v2.0)".
-3. Escolha uma composicao (conservadora, equilibrada ou agressiva).
-4. Marque `Montar minha aposta ideal`.
-5. Clique em `Gerar Volante` para visualizar e baixar o arquivo do volante.
+4. Escolha uma composicao (conservadora, equilibrada ou agressiva).
+5. Marque `Montar minha aposta ideal`.
+6. Clique em `Gerar Volante` para visualizar e baixar o arquivo do volante.
 
 ## Formato de importacao de rodada
 
@@ -99,7 +109,7 @@ node --test tests/*.test.mjs
 - [x] Testes criticos automatizados (`node --test`).
 - [x] CI configurado em `.github/workflows/ci-tests.yml`.
 - [x] Tag de versao publicada (`v2.0.0`).
-- [ ] Release publicada na UI do GitHub (acao manual final).
+- [x] Release publicada na UI do GitHub (`v2.0.0`).
 
 ### Verificacao rapida pre-release (PowerShell)
 
