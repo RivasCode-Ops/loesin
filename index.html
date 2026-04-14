@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.0.2" />
+    <link rel="stylesheet" href="style.css?v=2.0.3" />
   </head>
   <body>
     <header class="hero">
@@ -167,6 +167,27 @@
             </details>
             <button id="check-result-btn" class="secondary-btn" type="button">Conferir acertos</button>
             <p id="contest-status" class="import-status"></p>
+            <div id="official-analysis-wrap" class="official-analysis-wrap" hidden>
+              <h3 class="official-analysis-heading">Analise oficial x volante</h3>
+              <p id="official-analysis-summary" class="official-analysis-summary"></p>
+              <div class="official-analysis-table-scroll">
+                <table class="official-analysis-table" aria-label="Comparativo jogo a jogo">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Jogo</th>
+                      <th>Tipo</th>
+                      <th>Palpites</th>
+                      <th>Oficial</th>
+                      <th>Acerto</th>
+                    </tr>
+                  </thead>
+                  <tbody id="official-analysis-tbody"></tbody>
+                </table>
+              </div>
+              <p id="official-analysis-extra" class="official-analysis-extra"></p>
+              <button id="export-official-csv-btn" class="secondary-btn" type="button">Exportar CSV</button>
+            </div>
           </div>
         </section>
 
@@ -198,6 +219,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.0.2"></script>
+    <script src="script.js?v=2.0.3"></script>
   </body>
 </html>

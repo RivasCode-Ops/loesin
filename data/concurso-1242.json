@@ -17,6 +17,6 @@
     { "home": "BOTAFOGO/RJ", "away": "CORITIBA/PR", "gameDate": "Domingo", "probabilities": { "H": 0.54, "D": 0.25, "A": 0.21 } },
     { "home": "AMERICA/MG", "away": "NOVORIZONTINO/SP", "gameDate": "Domingo", "probabilities": { "H": 0.49, "D": 0.28, "A": 0.23 } },
     { "home": "CORINTHIANS/SP", "away": "PALMEIRAS/SP", "gameDate": "Domingo", "probabilities": { "H": 0.30, "D": 0.33, "A": 0.37 } },
-    { "home": "CRUZEIRO/MG", "away": "ATLETICO/GO", "gameDate": "Domingo", "probabilities": { "H": 0.46, "D": 0.29, "A": 0.25 } }
+    { "home": "CRUZEIRO/MG", "away": "BRAGANTINO/SP", "gameDate": "Domingo", "probabilities": { "H": 0.48, "D": 0.28, "A": 0.24 } }
   ]
 }

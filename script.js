@@ -507,11 +507,14 @@ function performContestResultCheck() {
   const contest = Number(contestNumberInput.value);
   const parsedResult = parseOfficialResult(contestResultInput.value);
   if (!parsedResult) {
+    hideOfficialAnalysis();
     setContestStatus("Resultado invalido. Informe 14 simbolos (H/D/A ou 1/X/2).", true);
     return;
   }
 
   const currentHits = countHitsForTicket(appliedPicks, parsedResult);
+  renderOfficialVsTicketAnalysis(parsedResult, appliedPicks);
+
   const snapshot = Number.isInteger(contest) && contest > 0 ? getContestSnapshot(contest) : null;
   if (!snapshot) {
     setContestStatus(`Conferencia atual: ${currentHits}/14 acertos no volante em tela.`);
@@ -534,6 +537,117 @@ function countHitsForTicket(ticket, resultSymbols) {
     if (ticket[i] && ticket[i].picks.includes(resultSymbols[i])) hits += 1;
   }
   return hits;
+}
+
+let lastOfficialAnalysisCsv = "";
+
+function classifyTicketRowType(gameId, picksLength) {
+  const secaIds = new Set(pickSecas(games).map((s) => s.id));
+  if (picksLength === 3) return "Triplo";
+  if (picksLength === 2) return "Duplo";
+  if (picksLength === 1 && secaIds.has(gameId)) return "Seca";
+  if (picksLength === 1) return "Simples";
+  return "-";
+}
+
+function hideOfficialAnalysis() {
+  const wrap = document.getElementById("official-analysis-wrap");
+  if (wrap) wrap.hidden = true;
+  lastOfficialAnalysisCsv = "";
+}
+
+function csvEscapeCell(value) {
+  const t = String(value);
+  if (/[;"\n\r]/.test(t)) return `"${t.replace(/"/g, '""')}"`;
+  return t;
+}
+
+function renderOfficialVsTicketAnalysis(resultSymbols, ticket) {
+  const wrap = document.getElementById("official-analysis-wrap");
+  const tbody = document.getElementById("official-analysis-tbody");
+  const summary = document.getElementById("official-analysis-summary");
+  const extra = document.getElementById("official-analysis-extra");
+  if (!wrap || !tbody || !summary || !extra) return;
+
+  const rows = [];
+  let hits = 0;
+  let favHits = 0;
+  const dist = { H: 0, D: 0, A: 0 };
+  for (const s of resultSymbols) {
+    if (Object.prototype.hasOwnProperty.call(dist, s)) dist[s] += 1;
+  }
+
+  for (let i = 0; i < 14; i += 1) {
+    const g = ticket[i];
+    if (!g) continue;
+    const sym = resultSymbols[i];
+    const hit = g.picks.includes(sym);
+    if (hit) hits += 1;
+    if (g.best === sym) favHits += 1;
+    const tipo = classifyTicketRowType(g.id, g.picks.length);
+    const picksStr = g.picks.map((p) => outcomeLabel[p] || p).join(" + ");
+    const oficialStr = `${sym} (${outcomeLabel[sym] || sym})`;
+    rows.push({
+      id: g.id,
+      jogo: `${g.home} x ${g.away}`,
+      tipo,
+      palpites: picksStr,
+      oficial: oficialStr,
+      hit
+    });
+  }
+
+  tbody.replaceChildren();
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    [String(r.id), r.jogo, r.tipo, r.palpites, r.oficial].forEach((text) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    });
+    const tdHit = document.createElement("td");
+    tdHit.textContent = r.hit ? "Sim" : "Nao";
+    tdHit.className = r.hit ? "hit-yes" : "hit-no";
+    tr.appendChild(tdHit);
+    tbody.appendChild(tr);
+  }
+
+  const by = (t) => rows.filter((row) => row.tipo === t);
+  const hitCount = (list) => list.filter((row) => row.hit).length;
+  const secaRows = by("Seca");
+  const duploRows = by("Duplo");
+  const triploRows = by("Triplo");
+  const simplesRows = by("Simples");
+
+  summary.innerHTML = `Total no volante: <strong>${hits}/14</strong> jogos cobertos pelo resultado oficial. Benchmark so o favorito do modelo: <strong>${favHits}/14</strong>. Distribuicao do resultado: Casa ${dist.H}, Empate ${dist.D}, Fora ${dist.A}.`;
+
+  extra.textContent =
+    `Por tipo de linha — Secas: ${hitCount(secaRows)}/${secaRows.length}, Duplos: ${hitCount(duploRows)}/${duploRows.length}, ` +
+    `Triplos: ${hitCount(triploRows)}/${triploRows.length}, Simples: ${hitCount(simplesRows)}/${simplesRows.length}.`;
+
+  const lines = [
+    ["jogo", "mandante", "visitante", "tipo", "palpites_csv", "oficial", "acerto_volante", "favorito_modelo_acertou"].join(";")
+  ];
+  for (let i = 0; i < 14; i += 1) {
+    const g = ticket[i];
+    const sym = resultSymbols[i];
+    const hit = g.picks.includes(sym);
+    const tipo = classifyTicketRowType(g.id, g.picks.length);
+    lines.push(
+      [
+        String(g.id),
+        csvEscapeCell(g.home),
+        csvEscapeCell(g.away),
+        csvEscapeCell(tipo),
+        csvEscapeCell(g.picks.join(",")),
+        sym,
+        hit ? "sim" : "nao",
+        g.best === sym ? "sim" : "nao"
+      ].join(";")
+    );
+  }
+  lastOfficialAnalysisCsv = `\ufeff${lines.join("\n")}`;
+  wrap.hidden = false;
 }
 
 function renderABCompare() {
@@ -1492,6 +1606,24 @@ function setupActions() {
       } catch (_error) {
         setContestStatus("JSON invalido. Verifique se copiou o arquivo completo da API.", true);
       }
+    });
+  }
+
+  const exportOfficialCsvBtn = document.getElementById("export-official-csv-btn");
+  if (exportOfficialCsvBtn) {
+    exportOfficialCsvBtn.addEventListener("click", () => {
+      if (!lastOfficialAnalysisCsv) {
+        setContestStatus('Execute "Conferir acertos" com resultado valido antes de exportar.', true);
+        return;
+      }
+      const blob = new Blob([lastOfficialAnalysisCsv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "loesin-analise-oficial-volante.csv";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      appendLog("CSV de analise oficial x volante exportado.");
     });
   }
 }

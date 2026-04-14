@@ -661,6 +661,71 @@ input[type="checkbox"]:focus-visible {
   resize: vertical;
 }
 
+.official-analysis-wrap {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+
+.official-analysis-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+
+.official-analysis-summary {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.official-analysis-extra {
+  margin: 0.45rem 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.official-analysis-table-scroll {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.official-analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.official-analysis-table th,
+.official-analysis-table td {
+  padding: 0.4rem 0.45rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.official-analysis-table th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.official-analysis-table tr:nth-child(even) td {
+  background: #fafbfc;
+}
+
+.official-analysis-table .hit-yes {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.official-analysis-table .hit-no {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .hero {
     padding: 1rem;
