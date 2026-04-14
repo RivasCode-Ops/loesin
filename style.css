@@ -959,3 +959,170 @@ input[type="checkbox"]:focus-visible {
 .hub-pane[hidden] {
   display: none !important;
 }
+
+.game-wizard-panel {
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 55%);
+}
+
+.game-wizard-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.game-wizard-title {
+  margin: 0;
+  font-size: 1rem;
+  color: #0c4a6e;
+}
+
+.game-wizard-intro {
+  margin: 0 0 0.55rem;
+  font-size: 0.84rem;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.game-wizard-workspace {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--border);
+}
+
+.game-wizard-progress {
+  font-size: 0.92rem;
+  margin-bottom: 0.45rem;
+  color: #0f172a;
+}
+
+.wizard-step-status {
+  color: var(--muted);
+  font-weight: normal;
+  font-size: 0.86rem;
+}
+
+.wizard-match-title {
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-bottom: 0.35rem;
+  color: #0f172a;
+}
+
+.wizard-implied-row,
+.wizard-suggestion-row {
+  font-size: 0.86rem;
+  color: #334155;
+  margin: 0.25rem 0;
+  line-height: 1.4;
+}
+
+.wizard-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  margin: 0.55rem 0;
+  background: #fff;
+}
+
+.wizard-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.35rem 0;
+  font-size: 0.86rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.wizard-rapido-detail {
+  margin: 0.35rem 0;
+  padding: 0.45rem 0.55rem;
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #713f12;
+}
+
+.wizard-manual-row {
+  margin: 0.45rem 0;
+}
+
+.wizard-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.wizard-chip {
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.wizard-chip.active {
+  border-color: #0e7490;
+  background: #ecfeff;
+  font-weight: 700;
+}
+
+.wizard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.65rem 0 0.45rem;
+  align-items: center;
+}
+
+.wizard-ok-btn {
+  border: none;
+  background: #0e7490;
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.wizard-ok-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.wizard-done-banner {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #14532d;
+  font-size: 0.9rem;
+  margin-bottom: 0.55rem;
+}
+
+.wizard-list-label {
+  margin: 0.45rem 0 0.25rem;
+}
+
+.wizard-summary-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.84rem;
+  color: #334155;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.wizard-summary-list li {
+  margin: 0.2rem 0;
+}

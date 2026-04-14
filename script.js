@@ -29,6 +29,8 @@ let currentBettingPeriod = "";
 let currentGamesPeriod = "";
 let analysisBudget = 100;
 let disagreementGameIds = new Set();
+let wizardStepIndex = null;
+let wizardManualSymbols = ["H"];
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
 const ROUND_DATA_KEY = "loesin_round_data_v1";
@@ -193,6 +195,7 @@ function parseRoundCsv(content) {
 }
 
 function reinitializeRound(rawGames) {
+  resetGameWizard();
   games = buildAnalysis(rawGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
@@ -1141,7 +1144,231 @@ function exportTicketPng(ticket) {
   anchor.click();
 }
 
+function getSuggestedTicket() {
+  return applyComposition(games, pickSecas(games), selectedComposition);
+}
+
+function resetGameWizard() {
+  wizardStepIndex = null;
+  const ws = document.getElementById("game-wizard-workspace");
+  if (ws) ws.hidden = true;
+  const ob = document.getElementById("wizard-open-btn");
+  if (ob) {
+    ob.setAttribute("aria-expanded", "false");
+    ob.textContent = "Abrir assistente";
+  }
+}
+
+function formatWizardPicks(picks) {
+  return picks.map((p) => outcomeLabel[p] || p).join(" + ");
+}
+
+function getWizardConfirmedCount() {
+  if (wizardStepIndex === null) return 0;
+  if (wizardStepIndex === "done") return 14;
+  return wizardStepIndex;
+}
+
+function renderWizardSummary() {
+  const ol = document.getElementById("wizard-summary-list");
+  if (!ol) return;
+  ol.replaceChildren();
+  const n = getWizardConfirmedCount();
+  for (let i = 0; i < n; i += 1) {
+    const g = appliedPicks[i];
+    if (!g) continue;
+    const li = document.createElement("li");
+    li.textContent = `${String(i + 1).padStart(2, "0")} — ${g.home} x ${g.away}: ${formatWizardPicks(g.picks)}`;
+    ol.appendChild(li);
+  }
+}
+
+function syncWizardCritUI() {
+  const crit = document.querySelector('input[name="wizard-crit"]:checked')?.value || "volante";
+  const rap = document.getElementById("wizard-rapido-detail");
+  const man = document.getElementById("wizard-manual-row");
+  if (rap) rap.hidden = crit !== "rapido";
+  if (man) {
+    man.hidden = crit !== "manual";
+    if (crit === "manual") buildWizardManualChips();
+  }
+}
+
+function buildWizardManualChips() {
+  const root = document.getElementById("wizard-manual-row");
+  if (!root) return;
+  root.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "wizard-chip-row";
+  const order = ["H", "D", "A"];
+  order.forEach((sym) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `wizard-chip ${wizardManualSymbols.includes(sym) ? "active" : ""}`.trim();
+    btn.textContent = outcomeLabel[sym];
+    btn.addEventListener("click", () => {
+      if (wizardManualSymbols.includes(sym)) {
+        if (wizardManualSymbols.length <= 1) return;
+        wizardManualSymbols = wizardManualSymbols.filter((x) => x !== sym);
+      } else {
+        wizardManualSymbols = [...wizardManualSymbols, sym].sort(
+          (a, b) => order.indexOf(a) - order.indexOf(b)
+        );
+      }
+      buildWizardManualChips();
+    });
+    wrap.appendChild(btn);
+  });
+  root.appendChild(wrap);
+}
+
+function renderGameWizard() {
+  const ws = document.getElementById("game-wizard-workspace");
+  const activeBlock = document.getElementById("wizard-active-block");
+  const doneBanner = document.getElementById("wizard-done-banner");
+  if (!ws || ws.hidden || wizardStepIndex === null) return;
+
+  if (wizardStepIndex === "done") {
+    if (activeBlock) activeBlock.hidden = true;
+    if (doneBanner) {
+      doneBanner.hidden = false;
+      doneBanner.textContent =
+        "Voce confirmou os 14 jogos. Os palpites estao na tabela abaixo e na combinacao ao lado. " +
+        "Use Fechar assistente ou ajuste na tabela se precisar.";
+    }
+    renderWizardSummary();
+    return;
+  }
+
+  if (activeBlock) activeBlock.hidden = false;
+  if (doneBanner) doneBanner.hidden = true;
+
+  const idx = wizardStepIndex;
+  const game = games[idx];
+  const row = appliedPicks[idx];
+  if (!game || !row) return;
+
+  const sug = getSuggestedTicket()[idx];
+  const tipo = classifyTicketRowType(row.id, row.picks.length);
+  const rec = classifyGameRecommendation(game);
+
+  const stepNum = document.getElementById("wizard-step-num");
+  const stepSt = document.getElementById("wizard-step-status");
+  if (stepNum) stepNum.textContent = String(idx + 1);
+  if (stepSt) stepSt.textContent = ` — tipo de linha no volante: ${tipo}`;
+
+  const mt = document.getElementById("wizard-match-title");
+  if (mt) mt.textContent = `${game.home}  x  ${game.away}`;
+
+  const { H, D, A } = game.probabilities;
+  const imp = document.getElementById("wizard-implied-row");
+  if (imp) {
+    imp.textContent = `Odds implicitas (~1/prob.): Casa @ ${(1 / H).toFixed(2)} | Empate @ ${(1 / D).toFixed(
+      2
+    )} | Fora @ ${(1 / A).toFixed(2)}`;
+  }
+
+  const sg = document.getElementById("wizard-suggestion-row");
+  if (sg) {
+    sg.textContent = `Sugestao do volante (composicao): ${formatWizardPicks(sug.picks)}`;
+  }
+
+  const rap = document.getElementById("wizard-rapido-detail");
+  if (rap) {
+    rap.textContent = `Neste criterio: ${rec.mode} — ${formatWizardPicks(
+      getRecommendedPicksForGame(game, rec.mode)
+    )} (baseado so nas probabilidades do jogo).`;
+  }
+
+  wizardManualSymbols = [...row.picks];
+
+  const backBtn = document.getElementById("wizard-back-btn");
+  if (backBtn) backBtn.disabled = idx <= 0;
+
+  const okBtn = document.getElementById("wizard-ok-btn");
+  if (okBtn) {
+    okBtn.disabled = false;
+    okBtn.textContent = idx >= 13 ? "OK — finalizar volante" : "OK — proximo jogo";
+  }
+
+  syncWizardCritUI();
+  renderWizardSummary();
+}
+
+function applyWizardStepAndAdvance() {
+  if (wizardStepIndex === null || wizardStepIndex === "done") return;
+  const idx = wizardStepIndex;
+  const crit = document.querySelector('input[name="wizard-crit"]:checked')?.value || "volante";
+  let picks;
+  if (crit === "volante") picks = [...getSuggestedTicket()[idx].picks];
+  else if (crit === "rapido") {
+    const rec = classifyGameRecommendation(games[idx]);
+    picks = getRecommendedPicksForGame(games[idx], rec.mode);
+  } else {
+    picks = normalizeManualPicks([...wizardManualSymbols]);
+    if (picks.length === 0) {
+      appendLog("Marque ao menos um resultado (Casa, Empate ou Fora).", "warn");
+      return;
+    }
+  }
+
+  appliedPicks[idx].picks = picks;
+  selectedRiskPreset = "custom";
+  syncRiskPresetControl();
+  renderGames(appliedPicks);
+  updateResult(appliedPicks);
+  saveState();
+
+  if (idx >= 13) {
+    wizardStepIndex = "done";
+  } else {
+    wizardStepIndex = idx + 1;
+    document.querySelectorAll('input[name="wizard-crit"]').forEach((r) => {
+      if (r.value === "volante") r.checked = true;
+    });
+  }
+  renderGameWizard();
+}
+
+function setupGameWizard() {
+  const openBtn = document.getElementById("wizard-open-btn");
+  const ws = document.getElementById("game-wizard-workspace");
+  const okBtn = document.getElementById("wizard-ok-btn");
+  const backBtn = document.getElementById("wizard-back-btn");
+  if (!openBtn || !ws) return;
+
+  openBtn.addEventListener("click", () => {
+    const show = ws.hidden;
+    ws.hidden = !show;
+    openBtn.setAttribute("aria-expanded", show ? "true" : "false");
+    openBtn.textContent = show ? "Fechar assistente" : "Abrir assistente";
+    if (show) {
+      if (wizardStepIndex === null || wizardStepIndex === "done") {
+        wizardStepIndex = 0;
+      }
+      renderGameWizard();
+    }
+  });
+
+  document.querySelectorAll('input[name="wizard-crit"]').forEach((r) => {
+    r.addEventListener("change", () => syncWizardCritUI());
+  });
+
+  if (okBtn) {
+    okBtn.addEventListener("click", () => applyWizardStepAndAdvance());
+  }
+
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      if (wizardStepIndex === null || wizardStepIndex === "done" || wizardStepIndex <= 0) return;
+      wizardStepIndex -= 1;
+      renderGameWizard();
+    });
+  }
+}
+
 function refreshView() {
+  resetGameWizard();
   const secas = pickSecas(games);
   appliedPicks = applyComposition(games, secas, selectedComposition);
   renderGames(appliedPicks);
@@ -1692,6 +1919,7 @@ async function bootstrap() {
 
   setupOddsMarketPanel();
   setupHubNavigation();
+  setupGameWizard();
 }
 
 function setupHubNavigation() {

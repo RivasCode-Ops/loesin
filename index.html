@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.1.1" />
+    <link rel="stylesheet" href="style.css?v=2.2.0" />
   </head>
   <body>
     <header class="hero">
@@ -21,6 +21,55 @@
     <main class="container app-layout">
       <section class="panel app-games">
         <h2>Jogos da Rodada</h2>
+
+        <div id="game-wizard-panel" class="game-wizard-panel">
+          <div class="game-wizard-toolbar">
+            <h3 class="game-wizard-title">Montagem jogo a jogo</h3>
+            <button type="button" id="wizard-open-btn" class="secondary-btn" aria-expanded="false">
+              Abrir assistente
+            </button>
+          </div>
+          <p class="game-wizard-intro">
+            Um passo por jogo: sugestao do volante (composicao), odds implicitas a partir das probabilidades e sua
+            escolha — a lista abaixo vai enchendo ate o 14.
+          </p>
+          <div id="game-wizard-workspace" class="game-wizard-workspace" hidden>
+            <div id="wizard-active-block">
+              <div class="game-wizard-progress">
+                Passo <strong id="wizard-step-num">1</strong> / 14
+                <span id="wizard-step-status" class="wizard-step-status"></span>
+              </div>
+              <div id="wizard-match-title" class="wizard-match-title"></div>
+              <div id="wizard-implied-row" class="wizard-implied-row"></div>
+              <div id="wizard-suggestion-row" class="wizard-suggestion-row"></div>
+              <fieldset class="wizard-fieldset">
+                <legend class="import-label">Como prefere definir este jogo?</legend>
+                <label class="wizard-radio"
+                  ><input type="radio" name="wizard-crit" value="volante" checked /> Seguir sugestao do volante
+                  (composicao atual)</label
+                >
+                <label class="wizard-radio"
+                  ><input type="radio" name="wizard-crit" value="rapido" /> Criterio rapido por probabilidade
+                  (analise automatica neste jogo)</label
+                >
+                <label class="wizard-radio"
+                  ><input type="radio" name="wizard-crit" value="manual" /> Personalizado (marque Casa / Empate /
+                  Fora)</label
+                >
+              </fieldset>
+              <p id="wizard-rapido-detail" class="wizard-rapido-detail" hidden></p>
+              <div id="wizard-manual-row" class="wizard-manual-row" hidden></div>
+              <div class="wizard-actions">
+                <button type="button" id="wizard-back-btn" class="secondary-btn">Anterior</button>
+                <button type="button" id="wizard-ok-btn" class="wizard-ok-btn">OK — proximo jogo</button>
+              </div>
+            </div>
+            <div id="wizard-done-banner" class="wizard-done-banner" hidden></div>
+            <p class="import-label wizard-list-label">Volante confirmado (ordem dos jogos)</p>
+            <ol id="wizard-summary-list" class="wizard-summary-list"></ol>
+          </div>
+        </div>
+
         <div id="round-official-info" class="round-official-info" hidden></div>
         <div id="games-grid" class="games-grid"></div>
       </section>
@@ -335,6 +384,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.1.1"></script>
+    <script src="script.js?v=2.2.0"></script>
   </body>
 </html>
