@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.2.0" />
+    <link rel="stylesheet" href="style.css?v=2.3.0" />
   </head>
   <body>
     <header class="hero">
@@ -21,6 +21,37 @@
     <main class="container app-layout">
       <section class="panel app-games">
         <h2>Jogos da Rodada</h2>
+
+        <div id="volante-board" class="volante-board" aria-label="Volante da rodada">
+          <div class="volante-board-head">
+            <div class="volante-meta" id="volante-meta-block">
+              <span class="volante-meta-item"><strong>Concurso</strong> <span id="volante-meta-contest">-</span></span>
+              <span class="volante-meta-item"><strong>Data</strong> <span id="volante-meta-date">-</span></span>
+              <span class="volante-meta-item"><strong>Realizacao</strong> <span id="volante-meta-period">-</span></span>
+            </div>
+            <p class="volante-board-lead">
+              Marque cada jogo no quadro. Clique no jogo para ver numeros, tendencia ilustrativa (ultimas 10) e
+              confirmar palpite. Primeiro informe quanto pretende investir para sugerir duplos e triplos.
+            </p>
+            <div class="volante-invest-row">
+              <label class="import-label" for="volante-invest-input">Investimento maximo (R$)</label>
+              <input
+                id="volante-invest-input"
+                class="volante-invest-input"
+                type="number"
+                min="1"
+                step="1"
+                value="48"
+                placeholder="Ex.: 48"
+              />
+              <button type="button" id="volante-invest-btn" class="volante-invest-btn">
+                Sugerir duplos / triplos
+              </button>
+            </div>
+            <p id="volante-invest-hint" class="volante-invest-hint" role="status"></p>
+          </div>
+          <div id="volante-grid" class="volante-grid"></div>
+        </div>
 
         <div id="game-wizard-panel" class="game-wizard-panel">
           <div class="game-wizard-toolbar">
@@ -71,8 +102,57 @@
         </div>
 
         <div id="round-official-info" class="round-official-info" hidden></div>
-        <div id="games-grid" class="games-grid"></div>
+        <details class="games-table-details">
+          <summary class="games-table-summary">Tabela completa (palpites rapidos na grade)</summary>
+          <div id="games-grid" class="games-grid"></div>
+        </details>
       </section>
+
+      <div
+        id="volante-game-modal"
+        class="volante-modal"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="volante-modal-title"
+      >
+        <div class="volante-modal-backdrop" id="volante-modal-backdrop"></div>
+        <div class="volante-modal-card">
+          <div class="volante-modal-header">
+            <h3 id="volante-modal-title" class="volante-modal-title">Jogo</h3>
+            <button type="button" class="volante-modal-close" id="volante-modal-close" aria-label="Fechar">
+              &times;
+            </button>
+          </div>
+          <div class="volante-modal-body">
+            <p id="volante-modal-probs" class="volante-modal-probs"></p>
+            <p class="volante-modal-note">
+              Tabelas abaixo sao <strong>ilustrativas</strong> (simulacao de forma em casa/fora — nao sao dados
+              oficiais de clubes).
+            </p>
+            <div class="volante-modal-stats">
+              <div>
+                <h4 class="volante-modal-h4">Mandante — ultimos 10 em casa</h4>
+                <div class="volante-modal-table-wrap">
+                  <table class="volante-mini-table" id="volante-stats-home"></table>
+                </div>
+              </div>
+              <div>
+                <h4 class="volante-modal-h4">Visitante — ultimos 10 como visitante</h4>
+                <div class="volante-modal-table-wrap">
+                  <table class="volante-mini-table" id="volante-stats-away"></table>
+                </div>
+              </div>
+            </div>
+            <p class="import-label">Palpites neste jogo</p>
+            <div id="volante-modal-chips" class="volante-modal-chips"></div>
+            <div class="volante-modal-actions">
+              <button type="button" id="volante-modal-save" class="volante-ok-btn">Salvar e marcar no volante</button>
+              <button type="button" class="secondary-btn" id="volante-modal-cancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <aside class="hub-sidebar" aria-label="Ferramentas LOESIN">
         <nav class="hub-nav" role="tablist" aria-label="Secoes">
@@ -384,6 +464,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.2.0"></script>
+    <script src="script.js?v=2.3.0"></script>
   </body>
 </html>

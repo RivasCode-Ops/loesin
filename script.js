@@ -31,6 +31,9 @@ let analysisBudget = 100;
 let disagreementGameIds = new Set();
 let wizardStepIndex = null;
 let wizardManualSymbols = ["H"];
+let volanteVisited = new Set();
+let volanteModalGameId = null;
+let volanteModalPicks = [];
 const STORAGE_KEY = "loesin_ticket_v12";
 const HISTORY_KEY = "loesin_history_v1";
 const ROUND_DATA_KEY = "loesin_round_data_v1";
@@ -40,7 +43,7 @@ const MONTE_CARLO_RUNS = 10000;
 const RISK_PRESETS = {
   baixo: { duplos: 3, triplos: 0, label: "Baixo risco" },
   medio: { duplos: 4, triplos: 1, label: "Medio risco" },
-  alto: { duplos: 5, triplos: 2, label: "Alto risco" }
+  alto: { duplos: 4, triplos: 2, label: "Alto risco" }
 };
 
 async function loadGames() {
@@ -196,6 +199,7 @@ function parseRoundCsv(content) {
 
 function reinitializeRound(rawGames) {
   resetGameWizard();
+  volanteVisited = new Set();
   games = buildAnalysis(rawGames).slice(0, 14);
   compositions = buildCompositions();
   selectedComposition = compositions.find((c) => c.recommended) || compositions[1] || compositions[0];
@@ -261,10 +265,39 @@ function compositionMetrics(duplos, triplos) {
   return { duplos, triplos, combos, cost, coverage, score };
 }
 
+function enumerateBudgetCompositions() {
+  const list = [];
+  for (let d = 2; d <= 6; d += 1) {
+    for (let t = 0; t <= 2; t += 1) {
+      if (d + t > 6) continue;
+      list.push(compositionMetrics(d, t));
+    }
+  }
+  return list;
+}
+
+function wrapMetricsAsComposition(m) {
+  const existing = compositions.find((c) => c.duplos === m.duplos && c.triplos === m.triplos);
+  if (existing) return existing;
+  return {
+    name: `Orcamento (${m.duplos}D/${m.triplos}T)`,
+    ...m,
+    strategy: "orcamento"
+  };
+}
+
+function formatCompositionHumanPT(duplos, triplos) {
+  const parts = [];
+  if (triplos > 0) parts.push(`${triplos} ${triplos === 1 ? "triplo" : "triplos"}`);
+  if (duplos > 0) parts.push(`${duplos} ${duplos === 1 ? "duplo" : "duplos"}`);
+  return parts.length ? parts.join(" e ") : "apenas secas (sem duplo/triplo extra)";
+}
+
 function buildCompositions() {
   const all = [];
   for (let d = 2; d <= 6; d += 1) {
     for (let t = 0; t <= 2; t += 1) {
+      if (d + t > 6) continue;
       all.push(compositionMetrics(d, t));
     }
   }
@@ -275,7 +308,7 @@ function buildCompositions() {
   // Perfis padrao de custo/cobertura para manter coerencia da experiencia.
   const conservative = pickByProfile(3, 0);
   const balanced = pickByProfile(4, 1);
-  const aggressive = pickByProfile(5, 2);
+  const aggressive = pickByProfile(4, 2);
 
   return [
     { name: "Conservadora", ...conservative, strategy: "baixo custo" },
@@ -319,7 +352,8 @@ function saveState() {
   const payload = {
     selectedComposition: selectedComposition ? selectedComposition.name : null,
     selectedRiskPreset,
-    picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks }))
+    picks: appliedPicks.map((g) => ({ id: g.id, picks: g.picks })),
+    volanteVisited: [...volanteVisited]
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -869,11 +903,12 @@ function renderGameInsights(ticket) {
 function chooseBestCompositionForBudget(maxBudget) {
   if (!Number.isFinite(maxBudget) || maxBudget < 1) return null;
   const secas = pickSecas(games);
-  const candidates = compositions.filter((c) => c.cost <= maxBudget);
+  const candidates = enumerateBudgetCompositions().filter((c) => c.cost <= maxBudget);
   if (candidates.length === 0) return null;
 
   let best = null;
-  candidates.forEach((comp) => {
+  candidates.forEach((metrics) => {
+    const comp = wrapMetricsAsComposition(metrics);
     const ticket = applyComposition(games, secas, comp);
     const stats = computeTicketStats(ticket);
     const score = stats.p14 + stats.coverage / 1000 - stats.combos / 100000;
@@ -885,8 +920,220 @@ function chooseBestCompositionForBudget(maxBudget) {
   return best;
 }
 
+function mulberry32(a) {
+  return function next() {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedFromStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mockFormRows(perspective, seedBase) {
+  const rand = mulberry32(seedBase);
+  const opponents = ["ADV A", "ADV B", "ADV C", "ADV D", "ADV E", "ADV F", "ADV G", "ADV H", "ADV I", "ADV J"];
+  const rows = [];
+  for (let i = 0; i < 10; i += 1) {
+    const gh = Math.floor(rand() * 4);
+    const ga = Math.floor(rand() * 4);
+    let res = "E";
+    if (gh > ga) res = perspective === "home" ? "V" : "D";
+    else if (gh < ga) res = perspective === "home" ? "D" : "V";
+    rows.push({ opp: opponents[i] || `Op ${i + 1}`, res, score: `${gh}x${ga}` });
+  }
+  return rows;
+}
+
+function fillVolanteStatsTable(tableEl, rows) {
+  if (!tableEl) return;
+  tableEl.innerHTML = `
+    <thead><tr><th>Adversario</th><th>Placar</th><th>Res.</th></tr></thead>
+    <tbody>
+      ${rows
+        .map((r) => `<tr><td>${r.opp}</td><td>${r.score}</td><td>${r.res}</td></tr>`)
+        .join("")}
+    </tbody>
+  `;
+}
+
+function renderVolanteMeta() {
+  const contestEl = document.getElementById("volante-meta-contest");
+  const dateEl = document.getElementById("volante-meta-date");
+  const periodEl = document.getElementById("volante-meta-period");
+  if (contestEl) contestEl.textContent = currentContestNumber || "-";
+  if (dateEl) dateEl.textContent = currentContestDate || "-";
+  const periodBits = [];
+  if (currentBettingPeriod) periodBits.push(`Apostas: ${currentBettingPeriod}`);
+  if (currentGamesPeriod) periodBits.push(`Jogos: ${currentGamesPeriod}`);
+  if (periodEl) periodEl.textContent = periodBits.length ? periodBits.join(" | ") : "-";
+}
+
+function pickKindLabel(game) {
+  const n = game.picks.length;
+  if (n >= 3) return "Triplo";
+  if (n === 2) return "Duplo";
+  return "Seca";
+}
+
+function renderVolanteGrid() {
+  const root = document.getElementById("volante-grid");
+  if (!root || !appliedPicks.length) return;
+  root.innerHTML = "";
+  appliedPicks.forEach((game) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `volante-card ${volanteVisited.has(game.id) ? "volante-card--done" : ""}`.trim();
+    card.setAttribute("data-game-id", String(game.id));
+    const initials = game.picks.map((x) => outcomeLabel[x][0]).join("");
+    card.innerHTML = `
+      <span class="volante-card-mark" aria-hidden="true">${volanteVisited.has(game.id) ? "✓" : ""}</span>
+      <span class="volante-card-num">Jogo ${game.id}</span>
+      <span class="volante-card-match">${game.home} <span class="volante-vs">x</span> ${game.away}</span>
+      <span class="volante-card-picks">${game.picks.map((s) => outcomeLabel[s]).join(" · ")}</span>
+      <span class="volante-card-kind">${pickKindLabel(game)} (${initials})</span>
+    `;
+    card.addEventListener("click", () => openVolanteModal(game.id));
+    root.appendChild(card);
+  });
+}
+
+function closeVolanteModal() {
+  const modal = document.getElementById("volante-game-modal");
+  if (modal) modal.hidden = true;
+  volanteModalGameId = null;
+  volanteModalPicks = [];
+}
+
+function openVolanteModal(gameId) {
+  const game = appliedPicks.find((g) => g.id === gameId);
+  if (!game) return;
+  volanteModalGameId = gameId;
+  volanteModalPicks = [...game.picks];
+  const modal = document.getElementById("volante-game-modal");
+  const title = document.getElementById("volante-modal-title");
+  const probs = document.getElementById("volante-modal-probs");
+  if (title) title.textContent = `Jogo ${game.id} — ${game.home} x ${game.away}`;
+  if (probs) {
+    probs.textContent = `Modelo 1x2: H ${(game.probabilities.H * 100).toFixed(0)}% | D ${(game.probabilities.D * 100).toFixed(0)}% | A ${(game.probabilities.A * 100).toFixed(0)}%`;
+  }
+  const hSeed = seedFromStr(`home:${game.home}:${game.away}`);
+  const aSeed = seedFromStr(`away:${game.away}:${game.home}`);
+  fillVolanteStatsTable(document.getElementById("volante-stats-home"), mockFormRows("home", hSeed));
+  fillVolanteStatsTable(document.getElementById("volante-stats-away"), mockFormRows("away", aSeed));
+  renderVolanteModalChips();
+  if (modal) modal.hidden = false;
+}
+
+function renderVolanteModalChips() {
+  const row = document.getElementById("volante-modal-chips");
+  if (!row) return;
+  row.innerHTML = "";
+  ["H", "D", "A"].forEach((symbol) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    const active = volanteModalPicks.includes(symbol);
+    chip.className = `volante-modal-chip ${active ? "active" : ""}`.trim();
+    chip.textContent = outcomeLabel[symbol];
+    chip.setAttribute("aria-pressed", String(active));
+    chip.addEventListener("click", () => {
+      if (volanteModalPicks.includes(symbol)) {
+        if (volanteModalPicks.length <= 1) return;
+        volanteModalPicks = volanteModalPicks.filter((p) => p !== symbol);
+      } else {
+        volanteModalPicks = [...volanteModalPicks, symbol].sort(
+          (a, b) => ["H", "D", "A"].indexOf(a) - ["H", "D", "A"].indexOf(b)
+        );
+      }
+      renderVolanteModalChips();
+    });
+    row.appendChild(chip);
+  });
+}
+
+function applyVolanteModalPicks() {
+  if (volanteModalGameId == null) return;
+  const game = appliedPicks.find((g) => g.id === volanteModalGameId);
+  if (!game) return;
+  const next = normalizeManualPicks(volanteModalPicks);
+  if (next.length === 0) return;
+  game.picks = next;
+  volanteVisited.add(volanteModalGameId);
+  selectedRiskPreset = "custom";
+  syncRiskPresetControl();
+  closeVolanteModal();
+  renderGames(appliedPicks);
+  updateResult(appliedPicks);
+  saveState();
+}
+
+function setupVolanteBoard() {
+  const btn = document.getElementById("volante-invest-btn");
+  const input = document.getElementById("volante-invest-input");
+  const hint = document.getElementById("volante-invest-hint");
+  const backdrop = document.getElementById("volante-modal-backdrop");
+  const closeBtn = document.getElementById("volante-modal-close");
+  const cancelBtn = document.getElementById("volante-modal-cancel");
+  const saveBtn = document.getElementById("volante-modal-save");
+  const modal = document.getElementById("volante-game-modal");
+
+  if (btn && input && hint) {
+    btn.addEventListener("click", () => {
+      const budget = Number(input.value);
+      const result = chooseBestCompositionForBudget(budget);
+      if (!result) {
+        hint.textContent =
+          "Nao ha composicao valida dentro desse valor (tente um valor maior ou verifique o minimo de R$1).";
+        return;
+      }
+      const { comp, stats } = result;
+      selectedComposition = comp;
+      selectedRiskPreset = detectPresetByDistribution({
+        duplos: comp.duplos,
+        triplos: comp.triplos
+      });
+      const secas = pickSecas(games);
+      appliedPicks = applyComposition(games, secas, comp);
+      volanteVisited = new Set();
+      syncRiskPresetControl();
+      renderGames(appliedPicks);
+      renderSuggestions(secas);
+      renderCompositions();
+      updateResult(appliedPicks);
+      saveState();
+      const human = formatCompositionHumanPT(comp.duplos, comp.triplos);
+      hint.textContent =
+        `Para ate ${formatCurrency(budget)}: sugestao ${human} — perfil "${comp.name}", custo ${formatCurrency(comp.cost)}, ` +
+        `combinacoes ${stats.combos}, chance modelo P14 ${formatPercent(stats.p14 * 100)}. Ajuste jogo a jogo no quadro abaixo.`;
+    });
+  }
+
+  function onClose() {
+    closeVolanteModal();
+  }
+  if (backdrop) backdrop.addEventListener("click", onClose);
+  if (closeBtn) closeBtn.addEventListener("click", onClose);
+  if (cancelBtn) cancelBtn.addEventListener("click", onClose);
+  if (saveBtn) saveBtn.addEventListener("click", () => applyVolanteModalPicks());
+
+  if (modal) {
+    modal.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") onClose();
+    });
+  }
+}
+
 function renderGames(ticket) {
   const root = document.getElementById("games-grid");
+  if (!root) return;
   root.innerHTML = "";
   const table = document.createElement("table");
   table.className = "round-table";
@@ -957,6 +1204,8 @@ function renderGames(ticket) {
 
   root.appendChild(table);
   renderRoundOfficialInfo();
+  renderVolanteMeta();
+  renderVolanteGrid();
 }
 
 function renderSuggestions(secas) {
@@ -1369,6 +1618,7 @@ function setupGameWizard() {
 
 function refreshView() {
   resetGameWizard();
+  volanteVisited = new Set();
   const secas = pickSecas(games);
   appliedPicks = applyComposition(games, secas, selectedComposition);
   renderGames(appliedPicks);
@@ -1662,7 +1912,8 @@ function setupActions() {
     selectedRiskPreset = detectPresetByDistribution({ duplos: result.comp.duplos, triplos: result.comp.triplos });
     refreshView();
     setBudgetStatus(
-      `Melhor composicao ate ${formatCurrency(budget)}: ${result.comp.name} (${result.comp.duplos}D/${result.comp.triplos}T, custo ${formatCurrency(result.comp.cost)}).`
+      `Melhor composicao ate ${formatCurrency(budget)}: ${formatCompositionHumanPT(result.comp.duplos, result.comp.triplos)} ` +
+        `(${result.comp.name}, custo ${formatCurrency(result.comp.cost)}).`
     );
   });
 
@@ -1892,6 +2143,9 @@ async function bootstrap() {
       const picks = normalizeManualPicks(saved.picks);
       if (match && picks.length > 0) match.picks = picks;
     });
+    if (Array.isArray(state.volanteVisited)) {
+      volanteVisited = new Set(state.volanteVisited.filter((id) => Number.isFinite(id)));
+    }
   } else {
     appliedPicks = applyComposition(games, pickSecas(games), selectedComposition);
   }
@@ -1903,6 +2157,7 @@ async function bootstrap() {
   refreshContestMetaDisplay();
   saveState();
   setupActions();
+  setupVolanteBoard();
   renderErrorLogs();
   setAnalysisBudgetStatus(`Analise inicial pronta com orcamento de ${formatCurrency(analysisBudget)}.`);
   if ((importedRound || packagedContest) && roundValidation.ok) {
