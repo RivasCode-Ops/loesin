@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.0.3" />
+    <link rel="stylesheet" href="style.css?v=2.1.0" />
   </head>
   <body>
     <header class="hero">
@@ -36,6 +36,103 @@
             <button id="reset-round-btn" class="secondary-btn" type="button">Voltar para dados mock</button>
           </div>
           <p id="round-status" class="import-status"></p>
+        </section>
+
+        <section class="panel odds-market-section">
+          <h2>Odds e mercado</h2>
+          <p class="odds-market-lead">
+            Ferramentas locais inspiradas em comparadores e calculadoras do mercado (probabilidade implicita,
+            comparacao entre casas, valor esperado e dutching). Inspiração conceitual: OddsAgora, Odds Scanner,
+            Oddschecker, AceOdds, Gazeta (calculadoras). Sem cotacoes ao vivo — informe ou cole os valores.
+          </p>
+
+          <details class="odds-details" open>
+            <summary>Conversor de formatos</summary>
+            <p class="odds-hint">Decimal (2,20), americana (+150) ou fracao UK (6/5).</p>
+            <div class="odds-inline">
+              <input id="odds-convert-input" type="text" placeholder="Ex.: 2.20 ou +120 ou 11/10" />
+              <button id="odds-convert-btn" type="button" class="secondary-btn">Converter</button>
+            </div>
+            <pre id="odds-convert-out" class="odds-pre" aria-live="polite"></pre>
+          </details>
+
+          <details class="odds-details">
+            <summary>Comparador 1x2 (ate 6 casas)</summary>
+            <p class="odds-hint">
+              Por coluna, preencha as tres odds (H / D / A). O painel mostra margem da casa, fair % (devig
+              proporcional) e destaca a melhor odd por resultado.
+            </p>
+            <div class="odds-table-scroll">
+              <table class="odds-cmp-table" aria-label="Comparador de odds">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th><input id="odds-n0" type="text" class="odds-book-name" placeholder="Casa 1" /></th>
+                    <th><input id="odds-n1" type="text" class="odds-book-name" placeholder="Casa 2" /></th>
+                    <th><input id="odds-n2" type="text" class="odds-book-name" placeholder="Casa 3" /></th>
+                    <th><input id="odds-n3" type="text" class="odds-book-name" placeholder="Casa 4" /></th>
+                    <th><input id="odds-n4" type="text" class="odds-book-name" placeholder="Casa 5" /></th>
+                    <th><input id="odds-n5" type="text" class="odds-book-name" placeholder="Casa 6" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">H</th>
+                    <td><input id="odds-b0-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b1-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b2-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b3-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b4-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b5-h" type="text" class="odds-cell" inputmode="decimal" /></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">D</th>
+                    <td><input id="odds-b0-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b1-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b2-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b3-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b4-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b5-d" type="text" class="odds-cell" inputmode="decimal" /></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">A</th>
+                    <td><input id="odds-b0-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b1-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b2-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b3-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b4-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                    <td><input id="odds-b5-a" type="text" class="odds-cell" inputmode="decimal" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button id="odds-compare-btn" type="button" class="secondary-btn">Analisar linhas</button>
+            <pre id="odds-compare-out" class="odds-pre" aria-live="polite"></pre>
+          </details>
+
+          <details class="odds-details">
+            <summary>Valor esperado (fair vs casa)</summary>
+            <p class="odds-hint">Informe a probabilidade justa do resultado (ex.: do modelo LOESIN ou devig) e a odd decimal ofertada.</p>
+            <div class="odds-ev-grid">
+              <label class="import-label">Prob. justa (%)</label>
+              <input id="odds-ev-fair" type="number" min="0.1" max="99.9" step="0.1" value="40" />
+              <label class="import-label">Odd decimal</label>
+              <input id="odds-ev-dec" type="text" placeholder="2.50" />
+              <button id="odds-ev-btn" type="button" class="secondary-btn">Calcular EV</button>
+            </div>
+            <pre id="odds-ev-out" class="odds-pre" aria-live="polite"></pre>
+          </details>
+
+          <details class="odds-details">
+            <summary>Dutching (banca entre resultados)</summary>
+            <p class="odds-hint">Para mercados mutuamente exclusivos (ex.: varias selecoes ou linhas). Odds em decimal separadas por virgula ou linha.</p>
+            <label class="import-label">Odds (lista)</label>
+            <textarea id="odds-dutch-list" class="odds-dutch-text" rows="3" placeholder="2.10&#10;3.50&#10;5.00"></textarea>
+            <label class="import-label">Banca total (R$)</label>
+            <input id="odds-dutch-total" type="number" min="1" step="1" value="100" />
+            <button id="odds-dutch-btn" type="button" class="secondary-btn">Distribuir stakes</button>
+            <pre id="odds-dutch-out" class="odds-pre" aria-live="polite"></pre>
+          </details>
         </section>
 
         <section class="panel">
@@ -219,6 +316,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.0.3"></script>
+    <script src="script.js?v=2.1.0"></script>
   </body>
 </html>

@@ -1689,6 +1689,178 @@ async function bootstrap() {
     setRoundBadge("mock");
     setRoundStatus("Rodada mock carregada.");
   }
+
+  setupOddsMarketPanel();
+}
+
+function parseOddsCell(val, mod) {
+  if (val == null || String(val).trim() === "") return null;
+  const p = mod.parseOddsToken(String(val).trim());
+  if (p.error) return null;
+  return p.decimal;
+}
+
+function setupOddsMarketPanel() {
+  const convertBtn = document.getElementById("odds-convert-btn");
+  const compareBtn = document.getElementById("odds-compare-btn");
+  const evBtn = document.getElementById("odds-ev-btn");
+  const dutchBtn = document.getElementById("odds-dutch-btn");
+  if (!convertBtn) return;
+
+  convertBtn.addEventListener("click", async () => {
+    const raw = document.getElementById("odds-convert-input")?.value || "";
+    const out = document.getElementById("odds-convert-out");
+    if (!out) return;
+    const mod = await import("./lib/odds-tools.mjs");
+    const p = mod.parseOddsToken(raw.trim());
+    if (p.error) {
+      out.textContent = `Nao foi possivel interpretar: ${p.error}`;
+      return;
+    }
+    const d = p.decimal;
+    const impl = mod.impliedGrossFromDecimal(d);
+    const am = mod.americanFromDecimal(d);
+    const fr = mod.fractionalDisplayFromDecimal(d);
+    out.textContent = [
+      `Formato detectado: ${p.format}`,
+      `Decimal: ${d.toFixed(4)}`,
+      `Americana: ${am != null && am > 0 ? "+" : ""}${am}`,
+      `Fracao (aprox.): ${fr}`,
+      `Prob. implicita bruta: ${impl != null ? (impl * 100).toFixed(2) + "%" : "-"}`
+    ].join("\n");
+  });
+
+  if (compareBtn) {
+    compareBtn.addEventListener("click", async () => {
+      const out = document.getElementById("odds-compare-out");
+      if (!out) return;
+      const mod = await import("./lib/odds-tools.mjs");
+      const lines = [];
+      let any = false;
+      let bestH = { o: 0, book: "" };
+      let bestD = { o: 0, book: "" };
+      let bestA = { o: 0, book: "" };
+      for (let i = 0; i < 6; i += 1) {
+        const nameEl = document.getElementById(`odds-n${i}`);
+        const name = (nameEl && nameEl.value.trim()) || `Casa ${i + 1}`;
+        const h = parseOddsCell(document.getElementById(`odds-b${i}-h`)?.value, mod);
+        const d = parseOddsCell(document.getElementById(`odds-b${i}-d`)?.value, mod);
+        const a = parseOddsCell(document.getElementById(`odds-b${i}-a`)?.value, mod);
+        if (h == null && d == null && a == null) continue;
+        if (h == null || d == null || a == null) {
+          lines.push(`[${name}] Preencha H, D e A nesta coluna ou deixe todos vazios.`);
+          continue;
+        }
+        const an = mod.analyzeThreeWay(h, d, a);
+        if (!an.ok) {
+          lines.push(`[${name}] ${an.reason}`);
+          continue;
+        }
+        any = true;
+        lines.push(`--- ${name} ---`);
+        lines.push(
+          `  Margem: ${(an.margin * 100).toFixed(2)}% | Fair H/D/A: ${an.fairPct.H.toFixed(1)}% / ${an.fairPct.D.toFixed(1)}% / ${an.fairPct.A.toFixed(1)}%`
+        );
+        lines.push(
+          `  Implicitas brutas: ${an.impliedPct.H.toFixed(1)}% / ${an.impliedPct.D.toFixed(1)}% / ${an.impliedPct.A.toFixed(1)}%`
+        );
+        if (h > bestH.o) bestH = { o: h, book: name };
+        if (d > bestD.o) bestD = { o: d, book: name };
+        if (a > bestA.o) bestA = { o: a, book: name };
+      }
+      if (!any) {
+        out.textContent = "Preencha pelo menos uma coluna completa (H, D e A).";
+        return;
+      }
+      lines.push("");
+      lines.push("Melhores odds (decimal mais alto por resultado):");
+      if (bestH.o > 0) lines.push(`  H: ${bestH.o.toFixed(2)} @ ${bestH.book}`);
+      if (bestD.o > 0) lines.push(`  D: ${bestD.o.toFixed(2)} @ ${bestD.book}`);
+      if (bestA.o > 0) lines.push(`  A: ${bestA.o.toFixed(2)} @ ${bestA.book}`);
+      out.textContent = lines.join("\n");
+    });
+  }
+
+  if (evBtn) {
+    evBtn.addEventListener("click", async () => {
+      const out = document.getElementById("odds-ev-out");
+      if (!out) return;
+      const mod = await import("./lib/odds-tools.mjs");
+      const fairPct = Number(document.getElementById("odds-ev-fair")?.value);
+      const raw = document.getElementById("odds-ev-dec")?.value || "";
+      const p = mod.parseOddsToken(raw.trim());
+      if (p.error) {
+        out.textContent = "Odd invalida. Use decimal, americana ou fracao.";
+        return;
+      }
+      if (!(fairPct > 0 && fairPct < 100)) {
+        out.textContent = "Prob. justa deve estar entre 0 e 100.";
+        return;
+      }
+      const fair = fairPct / 100;
+      const ev = mod.expectedValueDecimal(fair, p.decimal);
+      const implOffered = mod.impliedGrossFromDecimal(p.decimal);
+      const tail =
+        ev != null && ev > 0
+          ? "Expectativa positiva (valor) se a prob. justa estiver correta."
+          : ev != null
+            ? "EV nulo ou negativo nesta odd com sua prob. justa."
+            : "";
+      out.textContent = [
+        `Odd decimal: ${p.decimal.toFixed(4)}`,
+        `Prob. implicita da oferta: ${implOffered != null ? (implOffered * 100).toFixed(2) + "%" : "-"}`,
+        `Sua prob. justa: ${fairPct.toFixed(2)}%`,
+        `EV por unidade apostada: ${ev != null ? (ev * 100).toFixed(2) + "%" : "-"}`,
+        tail
+      ].join("\n");
+    });
+  }
+
+  if (dutchBtn) {
+    dutchBtn.addEventListener("click", async () => {
+      const out = document.getElementById("odds-dutch-out");
+      if (!out) return;
+      const mod = await import("./lib/odds-tools.mjs");
+      const txt = document.getElementById("odds-dutch-list")?.value || "";
+      const total = Number(document.getElementById("odds-dutch-total")?.value);
+      const parts = txt
+        .split(/[\s,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const decimals = [];
+      for (const part of parts) {
+        const p = mod.parseOddsToken(part);
+        if (p.error) {
+          out.textContent = `Nao entendi a odd: ${part}`;
+          return;
+        }
+        decimals.push(p.decimal);
+      }
+      if (decimals.length < 2) {
+        out.textContent = "Informe pelo menos duas odds.";
+        return;
+      }
+      if (!(total > 0)) {
+        out.textContent = "Banca total invalida.";
+        return;
+      }
+      const r = mod.dutchingStakes(decimals, total);
+      if (!r) {
+        out.textContent = "Erro no calculo.";
+        return;
+      }
+      const lines = ["Stakes (retorno alvo igual se uma selecao vencer):"];
+      r.stakes.forEach((st, i) => {
+        lines.push(`  #${i + 1} odd ${decimals[i].toFixed(2)} -> R$ ${st.toFixed(2)}`);
+      });
+      lines.push(`Retorno se acertar uma: R$ ${r.impliedReturn.toFixed(2)}`);
+      lines.push(`Lucro liquido vs banca: R$ ${r.roiIfAnyWins.toFixed(2)}`);
+      if (r.roiIfAnyWins < -0.005) {
+        lines.push("Nota: em mercados com margem, lucro liquido costuma ser negativo (sem arbitragem).");
+      }
+      out.textContent = lines.join("\n");
+    });
+  }
 }
 
 window.addEventListener("error", (event) => {

@@ -726,6 +726,128 @@ input[type="checkbox"]:focus-visible {
   font-weight: 600;
 }
 
+.odds-market-section .odds-market-lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.86rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.odds-details {
+  margin: 0.55rem 0;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  background: #fafbfc;
+}
+
+.odds-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.odds-hint {
+  margin: 0.4rem 0 0.45rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.odds-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.odds-inline input[type="text"] {
+  flex: 1;
+  min-width: 10rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem;
+  font-size: 0.92rem;
+}
+
+.odds-pre {
+  margin: 0.45rem 0 0;
+  padding: 0.55rem 0.65rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.odds-table-scroll {
+  overflow-x: auto;
+  margin: 0.45rem 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.odds-cmp-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  min-width: 100%;
+}
+
+.odds-cmp-table th,
+.odds-cmp-table td {
+  border: 1px solid var(--border);
+  padding: 0.28rem;
+  vertical-align: middle;
+}
+
+.odds-cmp-table thead th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.odds-book-name {
+  width: 100%;
+  min-width: 4.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.28rem 0.35rem;
+  font-size: 0.78rem;
+}
+
+.odds-cell {
+  width: 100%;
+  min-width: 3.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.32rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+.odds-ev-grid {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.45rem 0;
+  max-width: 20rem;
+}
+
+.odds-ev-grid input[type="number"],
+.odds-ev-grid input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.92rem;
+}
+
+.odds-dutch-text {
+  width: 100%;
+  max-width: 22rem;
+  margin: 0.35rem 0;
+}
+
 @media (max-width: 640px) {
   .hero {
     padding: 1rem;
