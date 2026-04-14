@@ -614,6 +614,53 @@ input[type="checkbox"]:focus-visible {
   outline-offset: 2px;
 }
 
+.caixa-fetch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.caixa-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: #334155;
+}
+
+.caixa-fetch-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.caixa-fetch-hint a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.caixa-json-details {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: #fafbfc;
+}
+
+.caixa-json-details summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.caixa-json-textarea {
+  margin-top: 0.45rem;
+  min-height: 5rem;
+  resize: vertical;
+}
+
 @media (max-width: 640px) {
   .hero {
     padding: 1rem;

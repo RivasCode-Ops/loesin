@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.0.1" />
+    <link rel="stylesheet" href="style.css?v=2.0.2" />
   </head>
   <body>
     <header class="hero">
@@ -140,6 +140,31 @@
 
             <label for="contest-result-input" class="import-label">Resultado oficial (14 chars H/D/A ou 1/X/2)</label>
             <input id="contest-result-input" type="text" maxlength="64" placeholder="Ex.: H D A H D H A H D A H D H A" />
+            <div class="caixa-fetch-row">
+              <button id="fetch-caixa-result-btn" class="secondary-btn" type="button">
+                Buscar resultado (API Caixa)
+              </button>
+              <label class="caixa-inline-check">
+                <input id="auto-confer-after-fetch" type="checkbox" checked />
+                <span>Conferir acertos ao carregar</span>
+              </label>
+            </div>
+            <p class="caixa-fetch-hint">
+              Fonte:
+              <a
+                href="https://servicebus2.caixa.gov.br/portaldeloterias/api/loteca"
+                target="_blank"
+                rel="noopener noreferrer"
+                >JSON oficial — ultimo concurso</a
+              >.
+              Em alguns sites o navegador bloqueia a busca automatica (CORS). Nesse caso, abra o link, copie todo o JSON e use o campo abaixo.
+            </p>
+            <details class="caixa-json-details">
+              <summary>Colar JSON da Caixa (alternativa)</summary>
+              <label for="caixa-json-paste" class="import-label">Cole aqui o JSON retornado pela API</label>
+              <textarea id="caixa-json-paste" class="caixa-json-textarea" rows="6" placeholder='{"numero":1242,"listaResultadoEquipeEsportiva":[...]}'></textarea>
+              <button id="apply-caixa-json-btn" class="secondary-btn" type="button">Aplicar JSON e preencher resultado</button>
+            </details>
             <button id="check-result-btn" class="secondary-btn" type="button">Conferir acertos</button>
             <p id="contest-status" class="import-status"></p>
           </div>
@@ -173,6 +198,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.0.1"></script>
+    <script src="script.js?v=2.0.2"></script>
   </body>
 </html>

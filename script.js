@@ -468,6 +468,66 @@ function parseOfficialResult(input) {
   return normalized.split("");
 }
 
+/** Aplica JSON da API da Caixa ao campo de resultado e metadados opcionais. */
+async function applyCaixaApiPayload(payload, options = {}) {
+  const { formatOfficialResultInput, resultSymbolsFromCaixaPayload } = await import("./lib/caixa-loteca.mjs");
+  const parsed = resultSymbolsFromCaixaPayload(payload);
+  if (!parsed.ok) {
+    return { ok: false, reason: parsed.reason };
+  }
+  const contestResultInput = document.getElementById("contest-result-input");
+  const contestNumberInput = document.getElementById("contest-number-input");
+  const contestDateInput = document.getElementById("contest-date-input");
+  if (contestResultInput) {
+    contestResultInput.value = formatOfficialResultInput(parsed.symbols);
+  }
+  if (options.syncMeta !== false) {
+    if (parsed.numero != null && contestNumberInput) {
+      contestNumberInput.value = String(parsed.numero);
+      currentContestNumber = String(parsed.numero);
+    }
+    if (parsed.dataApuracao && contestDateInput) {
+      contestDateInput.value = parsed.dataApuracao;
+      currentContestDate = parsed.dataApuracao;
+    }
+    refreshContestMetaDisplay();
+  }
+  return {
+    ok: true,
+    numero: parsed.numero,
+    dataApuracao: parsed.dataApuracao
+  };
+}
+
+function performContestResultCheck() {
+  const contestNumberInput = document.getElementById("contest-number-input");
+  const contestResultInput = document.getElementById("contest-result-input");
+  if (!contestNumberInput || !contestResultInput) return;
+
+  const contest = Number(contestNumberInput.value);
+  const parsedResult = parseOfficialResult(contestResultInput.value);
+  if (!parsedResult) {
+    setContestStatus("Resultado invalido. Informe 14 simbolos (H/D/A ou 1/X/2).", true);
+    return;
+  }
+
+  const currentHits = countHitsForTicket(appliedPicks, parsedResult);
+  const snapshot = Number.isInteger(contest) && contest > 0 ? getContestSnapshot(contest) : null;
+  if (!snapshot) {
+    setContestStatus(`Conferencia atual: ${currentHits}/14 acertos no volante em tela.`);
+    return;
+  }
+  const savedTicket = ticketFromSnapshot(snapshot);
+  if (!savedTicket) {
+    setContestStatus("Volante salvo esta invalido e nao pode ser comparado.", true);
+    return;
+  }
+  const savedHits = countHitsForTicket(savedTicket, parsedResult);
+  const diff = currentHits - savedHits;
+  const deltaText = diff === 0 ? "empatou com o salvo" : diff > 0 ? `${diff} acerto(s) a mais` : `${Math.abs(diff)} acerto(s) a menos`;
+  setContestStatus(`Concurso ${contest}: atual ${currentHits}/14, salvo ${savedHits}/14 (${deltaText}).`);
+}
+
 function countHitsForTicket(ticket, resultSymbols) {
   let hits = 0;
   for (let i = 0; i < 14; i += 1) {
@@ -1127,6 +1187,10 @@ function setupActions() {
   const saveContestBtn = document.getElementById("save-contest-btn");
   const loadContestBtn = document.getElementById("load-contest-btn");
   const checkResultBtn = document.getElementById("check-result-btn");
+  const fetchCaixaResultBtn = document.getElementById("fetch-caixa-result-btn");
+  const applyCaixaJsonBtn = document.getElementById("apply-caixa-json-btn");
+  const caixaJsonPaste = document.getElementById("caixa-json-paste");
+  const autoConferAfterFetch = document.getElementById("auto-confer-after-fetch");
 
   confirm.addEventListener("change", () => {
     const canGenerate = confirm.checked;
@@ -1362,29 +1426,74 @@ function setupActions() {
   });
 
   checkResultBtn.addEventListener("click", () => {
-    const contest = Number(contestNumberInput.value);
-    const parsedResult = parseOfficialResult(contestResultInput.value);
-    if (!parsedResult) {
-      setContestStatus("Resultado invalido. Informe 14 simbolos (H/D/A ou 1/X/2).", true);
-      return;
-    }
-
-    const currentHits = countHitsForTicket(appliedPicks, parsedResult);
-    const snapshot = Number.isInteger(contest) && contest > 0 ? getContestSnapshot(contest) : null;
-    if (!snapshot) {
-      setContestStatus(`Conferencia atual: ${currentHits}/14 acertos no volante em tela.`);
-      return;
-    }
-    const savedTicket = ticketFromSnapshot(snapshot);
-    if (!savedTicket) {
-      setContestStatus("Volante salvo esta invalido e nao pode ser comparado.", true);
-      return;
-    }
-    const savedHits = countHitsForTicket(savedTicket, parsedResult);
-    const diff = currentHits - savedHits;
-    const deltaText = diff === 0 ? "empatou com o salvo" : diff > 0 ? `${diff} acerto(s) a mais` : `${Math.abs(diff)} acerto(s) a menos`;
-    setContestStatus(`Concurso ${contest}: atual ${currentHits}/14, salvo ${savedHits}/14 (${deltaText}).`);
+    performContestResultCheck();
   });
+
+  if (fetchCaixaResultBtn) {
+    fetchCaixaResultBtn.addEventListener("click", async () => {
+      const typed = contestNumberInput.value.trim();
+      const num = typed ? Number(typed) : NaN;
+      const useNum = Number.isInteger(num) && num > 0 ? num : "";
+      setContestStatus("Consultando API da Caixa...", false);
+      fetchCaixaResultBtn.disabled = true;
+      try {
+        const { buildCaixaLotecaUrl } = await import("./lib/caixa-loteca.mjs");
+        const url = buildCaixaLotecaUrl(useNum);
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const payload = await res.json();
+        const applied = await applyCaixaApiPayload(payload, { syncMeta: true });
+        if (!applied.ok) {
+          setContestStatus(applied.reason, true);
+          appendLog(`API Caixa: ${applied.reason}`, "warn");
+          return;
+        }
+        const nLabel = applied.numero != null ? applied.numero : "?";
+        setContestStatus(`Resultado oficial carregado (concurso ${nLabel}, Caixa).`);
+        appendLog(`Resultado Loteca obtido via API Caixa (concurso ${nLabel}).`);
+        if (autoConferAfterFetch && autoConferAfterFetch.checked) {
+          performContestResultCheck();
+        }
+      } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        setContestStatus(
+          `Nao foi possivel buscar automaticamente (${msg}). Abra o link do JSON oficial no painel e cole o texto em \"Colar JSON da Caixa\".`,
+          true
+        );
+        appendLog(`Erro API Caixa (CORS/rede): ${msg}`, "warn");
+      } finally {
+        fetchCaixaResultBtn.disabled = false;
+      }
+    });
+  }
+
+  if (applyCaixaJsonBtn && caixaJsonPaste) {
+    applyCaixaJsonBtn.addEventListener("click", async () => {
+      const raw = caixaJsonPaste.value.trim();
+      if (!raw) {
+        setContestStatus("Cole o JSON retornado pela API da Caixa antes de aplicar.", true);
+        return;
+      }
+      try {
+        const payload = JSON.parse(raw);
+        const applied = await applyCaixaApiPayload(payload, { syncMeta: true });
+        if (!applied.ok) {
+          setContestStatus(applied.reason, true);
+          return;
+        }
+        const nLabel = applied.numero != null ? applied.numero : "?";
+        setContestStatus(`JSON aplicado (concurso ${nLabel}).`);
+        appendLog(`Resultado Loteca aplicado a partir de JSON colado (concurso ${nLabel}).`);
+        if (autoConferAfterFetch && autoConferAfterFetch.checked) {
+          performContestResultCheck();
+        }
+      } catch (_error) {
+        setContestStatus("JSON invalido. Verifique se copiou o arquivo completo da API.", true);
+      }
+    });
+  }
 }
 
 async function bootstrap() {
