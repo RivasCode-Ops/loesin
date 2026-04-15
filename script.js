@@ -977,6 +977,32 @@ function renderVolanteMeta() {
   if (periodEl) periodEl.textContent = periodBits.length ? periodBits.join(" | ") : "-";
 }
 
+function ticketWithModalPreview() {
+  if (volanteModalGameId == null) return appliedPicks;
+  const nextPicks = normalizeManualPicks(volanteModalPicks);
+  if (nextPicks.length === 0) return appliedPicks;
+  return appliedPicks.map((g) => (g.id === volanteModalGameId ? { ...g, picks: nextPicks } : g));
+}
+
+function updateVolanteModalLive() {
+  const el = document.getElementById("volante-modal-live");
+  if (!el) return;
+  const t = ticketWithModalPreview();
+  const { combos, distribution, p14 } = computeTicketStats(t);
+  el.textContent =
+    `Valor do volante (preview): ${formatCurrency(combos)} — ${combos} combinacoes — ` +
+    `${formatCompositionHumanPT(distribution.duplos, distribution.triplos)} — P14 modelo ${formatPercent(p14 * 100)}`;
+}
+
+function updateVolanteLiveBar(ticket) {
+  const el = document.getElementById("volante-live-cost");
+  if (!el || !ticket || !ticket.length) return;
+  const { combos, distribution, p14 } = computeTicketStats(ticket);
+  el.textContent =
+    `Valor do volante: ${formatCurrency(combos)} — ${combos} combinacoes — ` +
+    `${formatCompositionHumanPT(distribution.duplos, distribution.triplos)} — P14 modelo ${formatPercent(p14 * 100)}`;
+}
+
 function pickKindLabel(game) {
   const n = game.picks.length;
   if (n >= 3) return "Triplo";
@@ -1009,6 +1035,8 @@ function renderVolanteGrid() {
 function closeVolanteModal() {
   const modal = document.getElementById("volante-game-modal");
   if (modal) modal.hidden = true;
+  const live = document.getElementById("volante-modal-live");
+  if (live) live.textContent = "";
   volanteModalGameId = null;
   volanteModalPicks = [];
 }
@@ -1057,6 +1085,7 @@ function renderVolanteModalChips() {
     });
     row.appendChild(chip);
   });
+  updateVolanteModalLive();
 }
 
 function applyVolanteModalPicks() {
@@ -1333,6 +1362,7 @@ function updateResult(ticket) {
   renderStrategyCompare(ticket);
   renderTicketHistory();
   renderGameInsights(ticket);
+  updateVolanteLiveBar(ticket);
 }
 
 function buildTicketText(ticket) {

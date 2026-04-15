@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.3.0" />
+    <link rel="stylesheet" href="style.css?v=2.3.1" />
   </head>
   <body>
     <header class="hero">
@@ -49,6 +49,7 @@
               </button>
             </div>
             <p id="volante-invest-hint" class="volante-invest-hint" role="status"></p>
+            <p id="volante-live-cost" class="volante-live-cost" role="status"></p>
           </div>
           <div id="volante-grid" class="volante-grid"></div>
         </div>
@@ -145,6 +146,7 @@
               </div>
             </div>
             <p class="import-label">Palpites neste jogo</p>
+            <p id="volante-modal-live" class="volante-modal-live" role="status"></p>
             <div id="volante-modal-chips" class="volante-modal-chips"></div>
             <div class="volante-modal-actions">
               <button type="button" id="volante-modal-save" class="volante-ok-btn">Salvar e marcar no volante</button>
@@ -196,7 +198,7 @@
             <select id="risk-preset" class="risk-select">
               <option value="baixo">Baixo risco (3D/0T)</option>
               <option value="medio" selected>Medio risco (4D/1T)</option>
-              <option value="alto">Alto risco (5D/2T)</option>
+              <option value="alto">Alto risco (4D/2T)</option>
               <option value="custom">Custom (manual)</option>
             </select>
             <p id="secas-list" class="secas"></p>
@@ -464,6 +466,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.3.0"></script>
+    <script src="script.js?v=2.3.1"></script>
   </body>
 </html>
