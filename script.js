@@ -965,6 +965,127 @@ function fillVolanteStatsTable(tableEl, rows) {
   `;
 }
 
+function generateLastFiveForTeam(teamName) {
+  const rand = mulberry32(seedFromStr(`L5:${teamName}`));
+  const adv = ["S.C. Alfa", "E.C. Beta", "C.E. Gamma", "A.D. Delta", "F.C. Omega"];
+  const rows = [];
+  for (let i = 0; i < 5; i += 1) {
+    const gh = Math.floor(rand() * 4);
+    const ga = Math.floor(rand() * 4);
+    let res;
+    if (gh > ga) res = "V";
+    else if (gh < ga) res = "D";
+    else res = "E";
+    rows.push({ opp: adv[i] || `Adv ${i + 1}`, res, score: `${gh}x${ga}` });
+  }
+  return rows;
+}
+
+function formPctFromVED(v, e) {
+  const pts = 3 * v + e;
+  return (100 * pts) / 15;
+}
+
+function pickAlignmentForTeam(team, game, picks) {
+  if (!picks || picks.length === 0 || !game || !game.probabilities) return 0;
+  const { H, D, A } = game.probabilities;
+  const isHome = game.home === team;
+  let sum = 0;
+  for (const o of picks) {
+    if (isHome) {
+      if (o === "H") sum += H * 100;
+      else if (o === "D") sum += D * (100 / 3);
+      else sum += A * 0;
+    } else {
+      if (o === "A") sum += A * 100;
+      else if (o === "D") sum += D * (100 / 3);
+      else sum += H * 0;
+    }
+  }
+  return sum / picks.length;
+}
+
+function loesinTeamIndex(formPct, pickPct) {
+  return Math.round(0.45 * formPct + 0.55 * pickPct);
+}
+
+function renderTeams28Stats(ticket) {
+  const tbody = document.getElementById("teams-28-stats-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  if (!games || games.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 11;
+    td.textContent = "Carregue a rodada para ver os 28 times.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  const rows = [];
+  games.forEach((g) => {
+    const tPick = ticket.find((x) => x.id === g.id);
+    const picks = tPick && Array.isArray(tPick.picks) ? tPick.picks : ["H"];
+    const slots = [
+      { team: g.home, role: "mandante", opp: g.away },
+      { team: g.away, role: "visitante", opp: g.home }
+    ];
+    slots.forEach((slot) => {
+      const last5 = generateLastFiveForTeam(slot.team);
+      const v = last5.filter((r) => r.res === "V").length;
+      const e = last5.filter((r) => r.res === "E").length;
+      const d = last5.filter((r) => r.res === "D").length;
+      const formPct = formPctFromVED(v, e);
+      const pickPct = pickAlignmentForTeam(slot.team, g, picks);
+      const idxScore = loesinTeamIndex(formPct, pickPct);
+      const seriesStr = last5.map((r) => r.res).join(" ");
+      const confronto = `${g.home} x ${g.away}`;
+      rows.push({
+        gameId: g.id,
+        team: slot.team,
+        role: slot.role,
+        opp: slot.opp,
+        confronto,
+        seriesStr,
+        v,
+        e,
+        d,
+        formPct,
+        pickPct,
+        idxScore
+      });
+    });
+  });
+
+  rows.sort((a, b) => b.idxScore - a.idxScore || a.team.localeCompare(b.team, "pt-BR"));
+
+  rows.forEach((r) => {
+    const tr = document.createElement("tr");
+    const cells = [
+      String(r.gameId),
+      r.team,
+      r.role,
+      r.confronto,
+      r.seriesStr,
+      String(r.v),
+      String(r.e),
+      String(r.d),
+      formatPercent(r.formPct),
+      formatPercent(r.pickPct),
+      String(r.idxScore)
+    ];
+    cells.forEach((text, i) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (i === 4) td.className = "teams-28-series";
+      if (i === 10) td.className = "teams-28-index";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
 function renderVolanteMeta() {
   const contestEl = document.getElementById("volante-meta-contest");
   const dateEl = document.getElementById("volante-meta-date");
@@ -1363,6 +1484,7 @@ function updateResult(ticket) {
   renderTicketHistory();
   renderGameInsights(ticket);
   updateVolanteLiveBar(ticket);
+  renderTeams28Stats(ticket);
 }
 
 function buildTicketText(ticket) {

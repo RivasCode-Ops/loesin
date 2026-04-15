@@ -1208,6 +1208,77 @@ input[type="checkbox"]:focus-visible {
   min-height: 1.2em;
 }
 
+.teams-28-stats-details {
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  background: #fafafa;
+}
+
+.teams-28-stats-summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #0f766e;
+  list-style-position: inside;
+}
+
+.teams-28-stats-note {
+  margin: 0.45rem 0 0.65rem;
+  font-size: 0.8rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.teams-28-table-wrap {
+  overflow-x: auto;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.teams-28-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.teams-28-table th,
+.teams-28-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.35rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.teams-28-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  z-index: 1;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #475569;
+}
+
+.teams-28-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.teams-28-series {
+  font-family: ui-monospace, Consolas, monospace;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.teams-28-index {
+  font-weight: 800;
+  color: #0e7490;
+}
+
 .volante-live-cost {
   margin: 0.5rem 0 0;
   padding: 0.45rem 0.55rem;

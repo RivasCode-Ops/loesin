@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loteria Esportiva Inteligente</title>
-    <link rel="stylesheet" href="style.css?v=2.3.1" />
+    <link rel="stylesheet" href="style.css?v=2.3.2" />
   </head>
   <body>
     <header class="hero">
@@ -53,6 +53,37 @@
           </div>
           <div id="volante-grid" class="volante-grid"></div>
         </div>
+
+        <details class="teams-28-stats-details">
+          <summary class="teams-28-stats-summary">28 times — forma (ultimos 5) e indice com palpites</summary>
+          <p class="teams-28-stats-note">
+            <strong>Ultimos 5:</strong> sequencia simulada (V vitoria, E empate, D derrota) por time — referencia
+            visual, sem API de clubes. <strong>Forma %</strong> = (3V + E) / 15 em escala 0–100%.
+            <strong>Palpite %</strong> = media, entre os resultados que voce marcou neste jogo, do peso favoravel ao
+            time (Casa/Fora) usando as probabilidades H/D/A do modelo (empate conta com 1/3 do peso de uma vitoria).
+            <strong>Indice</strong> = 45% forma + 55% palpite (arredondado).
+          </p>
+          <div class="teams-28-table-wrap">
+            <table class="teams-28-table" aria-label="Forma e indice dos 28 times">
+              <thead>
+                <tr>
+                  <th>Jogo</th>
+                  <th>Time</th>
+                  <th>Papel</th>
+                  <th>Confronto (rodada)</th>
+                  <th>Ultimos 5</th>
+                  <th>V</th>
+                  <th>E</th>
+                  <th>D</th>
+                  <th>Forma %</th>
+                  <th>Palpite %</th>
+                  <th>Indice</th>
+                </tr>
+              </thead>
+              <tbody id="teams-28-stats-tbody"></tbody>
+            </table>
+          </div>
+        </details>
 
         <div id="game-wizard-panel" class="game-wizard-panel">
           <div class="game-wizard-toolbar">
@@ -466,6 +497,6 @@
       </aside>
     </main>
 
-    <script src="script.js?v=2.3.1"></script>
+    <script src="script.js?v=2.3.2"></script>
   </body>
 </html>
